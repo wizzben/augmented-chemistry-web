@@ -29,3 +29,4 @@ public/sounds/
 
 # Vite
 vite.config.ts.timestamp-*
+.gstack/
