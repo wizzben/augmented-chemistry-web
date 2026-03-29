@@ -41,45 +41,52 @@ export function computeMoleculeGeometry(
   const tetra = tetraMatrices ?? setTetraMatrices(1.0);
   const atoms: AtomPlacement[] = [];
   const bonds: BondPlacement[] = [];
+  const visited = new Set<Atom>();
+  const atomPositions = new Map<Atom, [number, number, number]>();
 
   moleculeDFSTraversal(molecule, null, (origin, target, connectionBitfield) => {
-    if (origin) {
-      const transformIdx = connectionBitfield - 1;
-      const result = mat44Multiply(
-        tetra.transform[origin.language][transformIdx],
-        origin.matrix,
-      );
-      mat44LoadIdentity(target.matrix);
-      for (let i = 0; i < 16; i++) target.matrix[i] = result[i];
-    } else {
-      mat44LoadIdentity(target.matrix);
+    // Guard: don't overwrite matrix for already-visited atoms (ring back-edges).
+    // Port of the parole check in aco_platform_moleculeCalcMatrices (line 1532).
+    if (!visited.has(target)) {
+      if (origin) {
+        const transformIdx = connectionBitfield - 1;
+        const result = mat44Multiply(
+          tetra.transform[origin.language][transformIdx],
+          origin.matrix,
+        );
+        for (let i = 0; i < 16; i++) target.matrix[i] = result[i];
+      } else {
+        mat44LoadIdentity(target.matrix);
+      }
+
+      const pos: [number, number, number] = [
+        target.matrix[12],
+        target.matrix[13],
+        target.matrix[14],
+      ];
+      atoms.push({ atom: target, position: pos });
+      atomPositions.set(target, pos);
+      visited.add(target);
     }
 
-    const pos: [number, number, number] = [
-      target.matrix[12],
-      target.matrix[13],
-      target.matrix[14],
-    ];
-    atoms.push({ atom: target, position: pos });
-
+    // Always record bonds (including ring-closing bonds)
     if (origin) {
-      const originPos: [number, number, number] = [
-        origin.matrix[12],
-        origin.matrix[13],
-        origin.matrix[14],
-      ];
+      const originPos = atomPositions.get(origin)!;
+      const targetPos = atomPositions.get(target)!;
       const bondOrder = AC_ATOM_COUNT_CONNECTIONS_OF_BITFIELD[connectionBitfield];
       bonds.push({
         originAtom: origin,
         targetAtom: target,
         originPos,
-        targetPos: pos,
+        targetPos,
         bondOrder,
       });
     }
   });
 
-  // Center molecule at origin
+  // Center molecule at origin.
+  // Bond positions share the same tuple references as atom positions,
+  // so centering atoms automatically centers bonds too.
   if (atoms.length > 0) {
     let cx = 0, cy = 0, cz = 0;
     for (const a of atoms) {
@@ -95,14 +102,6 @@ export function computeMoleculeGeometry(
       a.position[0] -= cx;
       a.position[1] -= cy;
       a.position[2] -= cz;
-    }
-    for (const b of bonds) {
-      b.originPos[0] -= cx;
-      b.originPos[1] -= cy;
-      b.originPos[2] -= cz;
-      b.targetPos[0] -= cx;
-      b.targetPos[1] -= cy;
-      b.targetPos[2] -= cz;
     }
   }
 

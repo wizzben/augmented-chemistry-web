@@ -65,8 +65,7 @@ describe('computeMoleculeGeometry', () => {
     );
     const geo = computeMoleculeGeometry(mol);
 
-    // Chlorobenzene has 12 atoms; DFS may visit ring atoms multiple times
-    expect(geo.atoms.length).toBeGreaterThanOrEqual(12);
+    expect(geo.atoms).toHaveLength(12);
     // No NaN positions
     for (const a of geo.atoms) {
       expect(Number.isNaN(a.position[0])).toBe(false);
