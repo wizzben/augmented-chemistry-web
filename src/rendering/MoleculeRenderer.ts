@@ -17,17 +17,19 @@ export class MoleculeRenderer {
     this.bondRenderer = new BondRenderer();
   }
 
-  renderMolecule(molecule: Molecule): { group: THREE.Group; boundingRadius: number } {
+  renderMolecule(molecule: Molecule): { group: THREE.Group; boundingRadius: number; atomMeshes: THREE.Mesh[] } {
     this.clear();
 
     const geo = computeMoleculeGeometry(molecule);
     const group = new THREE.Group();
+    const atomMeshes: THREE.Mesh[] = [];
 
     const bondMaterial = this.materialLibrary.getBondMaterial();
 
     for (const atomPlacement of geo.atoms) {
       const mesh = this.atomRenderer.createAtomMesh(atomPlacement, this.materialLibrary);
       group.add(mesh);
+      atomMeshes.push(mesh);
     }
 
     for (const bondPlacement of geo.bonds) {
@@ -36,7 +38,7 @@ export class MoleculeRenderer {
     }
 
     this.group = group;
-    return { group, boundingRadius: geo.boundingRadius };
+    return { group, boundingRadius: geo.boundingRadius, atomMeshes };
   }
 
   clear(): void {

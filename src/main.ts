@@ -1,78 +1,148 @@
 import moleculesData from '@/data/molecules.json';
 import { deserializeMolecule } from '@/chemistry/Serializer';
+import { Molecule } from '@/chemistry/Molecule';
 import { SceneManager } from '@/rendering/SceneManager';
 import { MoleculeRenderer } from '@/rendering/MoleculeRenderer';
+import { MoleculeBuilder } from '@/interaction/MoleculeBuilder';
+import { DesktopControls } from '@/interaction/DesktopControls';
+import { ElementPalette } from '@/ui/ElementPalette';
+import { InfoPanel } from '@/ui/InfoPanel';
+import { MoleculeLibrary, type MoleculeEntry } from '@/ui/MoleculeLibrary';
+import type { MoleculeGeometryData } from '@/rendering/MoleculeGeometry';
+import * as THREE from 'three';
 
-interface MoleculeEntry {
-  names: Record<string, string>;
-  format: string;
-  formula?: string;
-  category?: string;
-  sounds?: Record<string, string>;
-  infotext?: Record<string, string>;
-}
+// ─── Pre-load library molecules for recognition ───────────────────────────
+const libraryEntries = moleculesData as MoleculeEntry[];
 
-const container = document.getElementById('app')!;
-const selector = document.getElementById('molecule-selector') as HTMLSelectElement;
-const info = document.getElementById('info')!;
-
-// Sort molecules alphabetically by English name
-const entries = (moleculesData as MoleculeEntry[]).slice().sort((a, b) => {
-  const nameA = a.names.en ?? a.names.de ?? '';
-  const nameB = b.names.en ?? b.names.de ?? '';
-  return nameA.localeCompare(nameB);
+const libraryMolecules: Molecule[] = libraryEntries.map((entry) => {
+  const name = entry.names.en ?? entry.names.de ?? 'Unknown';
+  return deserializeMolecule(name, entry.format, {
+    formula: entry.formula,
+    category: entry.category,
+    names: entry.names,
+  });
 });
 
-// Populate dropdown first (no WebGL needed)
-for (let i = 0; i < entries.length; i++) {
-  const entry = entries[i];
-  const name = entry.names.en ?? entry.names.de ?? `Molecule ${i}`;
-  const option = document.createElement('option');
-  option.value = String(i);
-  option.textContent = `${name}${entry.formula ? ` (${entry.formula})` : ''}`;
-  selector.appendChild(option);
-}
+// ─── Building molecule (starts empty) ─────────────────────────────────────
+const buildMolecule = new Molecule({ name: 'Building' });
 
-// Initialize 3D (may fail in headless browsers without WebGL)
+// ─── Scene setup ──────────────────────────────────────────────────────────
+const container = document.getElementById('app')!;
+const infoBar = document.getElementById('info-bar')!;
+const recognitionBar = document.getElementById('recognition-bar')!;
+
 let sceneManager: SceneManager | null = null;
 let moleculeRenderer: MoleculeRenderer | null = null;
+let desktopControls: DesktopControls | null = null;
 
 try {
   sceneManager = new SceneManager(container);
   moleculeRenderer = new MoleculeRenderer();
 } catch (e) {
-  info.textContent = 'WebGL not available';
+  infoBar.textContent = 'WebGL not available';
   console.error('Failed to initialize WebGL:', e);
 }
 
-function loadMolecule(index: number): void {
-  const entry = entries[index];
-  const name = entry.names.en ?? entry.names.de ?? 'Unknown';
+// Track atom meshes for raycasting
+let currentAtomMeshes: THREE.Mesh[] = [];
 
-  const molecule = deserializeMolecule(name, entry.format, {
+// ─── Builder ──────────────────────────────────────────────────────────────
+const infoPanel = new InfoPanel(infoBar);
+const builder = new MoleculeBuilder(buildMolecule, libraryMolecules);
+
+builder.onChanged = (geo: MoleculeGeometryData) => {
+  if (!sceneManager || !moleculeRenderer) return;
+
+  moleculeRenderer.clear();
+  if (geo.atoms.length > 0) {
+    const { group, boundingRadius, atomMeshes } = moleculeRenderer.renderMolecule(buildMolecule);
+    sceneManager.add(group);
+    if (boundingRadius > 0) sceneManager.fitToMolecule(boundingRadius);
+    currentAtomMeshes = atomMeshes;
+  } else {
+    currentAtomMeshes = [];
+  }
+
+  desktopControls?.updateGeometry(geo, currentAtomMeshes);
+  infoPanel.update(buildMolecule, null);
+};
+
+builder.onRecognized = (recognized) => {
+  infoPanel.update(buildMolecule, recognized);
+  if (recognized) {
+    const name = recognized.names?.en ?? recognized.names?.de ?? recognized.name;
+    recognitionBar.textContent = `Recognized: ${name}`;
+    recognitionBar.style.color = '#4caf50';
+  } else if (buildMolecule.atoms.length > 0) {
+    recognitionBar.textContent = `Building\u2026 ${buildMolecule.atoms.length} atom${buildMolecule.atoms.length !== 1 ? 's' : ''}`;
+    recognitionBar.style.color = '#aaa';
+  } else {
+    recognitionBar.textContent = '\u2014';
+    recognitionBar.style.color = '#aaa';
+  }
+};
+
+// ─── Desktop controls ─────────────────────────────────────────────────────
+if (sceneManager) {
+  desktopControls = new DesktopControls(sceneManager, builder);
+}
+
+// ─── Element palette ──────────────────────────────────────────────────────
+const paletteContainer = document.getElementById('element-grid')!;
+const palette = new ElementPalette(paletteContainer, (el) => {
+  builder.setElement(el);
+});
+
+// Select Carbon by default
+import { ALL_ELEMENTS } from '@/chemistry/Element';
+const defaultElement = ALL_ELEMENTS.find((e) => e.symbol === 'C') ?? ALL_ELEMENTS[0];
+palette.setSelected(defaultElement);
+builder.setElement(defaultElement);
+
+// ─── Undo / Reset ─────────────────────────────────────────────────────────
+document.getElementById('undo-btn')!.addEventListener('click', () => builder.undoLastAtom());
+document.getElementById('reset-btn')!.addEventListener('click', () => {
+  builder.reset();
+  recognitionBar.textContent = '\u2014';
+  recognitionBar.style.color = '#aaa';
+  if (sceneManager) sceneManager.fitToMolecule(5);
+});
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+    e.preventDefault();
+    builder.undoLastAtom();
+  }
+});
+
+// ─── Library panel (view-only) ────────────────────────────────────────────
+const libraryContainer = document.getElementById('library-list')!;
+const sortedEntries = libraryEntries.slice().sort((a, b) => {
+  const na = a.names.en ?? a.names.de ?? '';
+  const nb = b.names.en ?? b.names.de ?? '';
+  return na.localeCompare(nb);
+});
+
+new MoleculeLibrary(libraryContainer, sortedEntries, (entry) => {
+  if (!sceneManager || !moleculeRenderer) return;
+
+  const name = entry.names.en ?? entry.names.de ?? 'Unknown';
+  const viewMol = deserializeMolecule(name, entry.format, {
     formula: entry.formula,
     category: entry.category,
     names: entry.names,
   });
 
-  info.textContent = `${name}${entry.formula ? ' \u2014 ' + entry.formula : ''} \u2014 ${molecule.atoms.length} atoms`;
-
-  if (!sceneManager || !moleculeRenderer) return;
-
+  // Show library molecule in view-only mode (replace builder's rendered group temporarily)
   moleculeRenderer.clear();
-  const { group, boundingRadius } = moleculeRenderer.renderMolecule(molecule);
+  const { group, boundingRadius } = moleculeRenderer.renderMolecule(viewMol);
   sceneManager.add(group);
   sceneManager.fitToMolecule(boundingRadius);
-}
 
-// Select Water by default, or first molecule
-const waterIndex = entries.findIndex(
-  (e) => e.names.en?.toLowerCase().includes('water') || e.names.de?.toLowerCase() === 'wasser',
-);
-const defaultIndex = waterIndex >= 0 ? waterIndex : 0;
-selector.value = String(defaultIndex);
-loadMolecule(defaultIndex);
+  currentAtomMeshes = [];
+  desktopControls?.updateGeometry({ atoms: [], bonds: [], boundingRadius: 0, center: [0, 0, 0] }, []);
 
-selector.addEventListener('change', () => {
-  loadMolecule(Number(selector.value));
+  infoBar.textContent = `${name}${entry.formula ? ' \u2014 ' + entry.formula : ''} \u2014 ${viewMol.atoms.length} atoms (view only)`;
+  recognitionBar.textContent = name;
+  recognitionBar.style.color = '#aaa';
 });

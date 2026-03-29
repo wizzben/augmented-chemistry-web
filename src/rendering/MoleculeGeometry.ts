@@ -22,6 +22,7 @@ export interface MoleculeGeometryData {
   atoms: AtomPlacement[];
   bonds: BondPlacement[];
   boundingRadius: number;
+  center: [number, number, number];
 }
 
 /**
@@ -102,6 +103,10 @@ export function computeMoleculeGeometry(
       a.position[0] -= cx;
       a.position[1] -= cy;
       a.position[2] -= cz;
+      // Keep atom.matrix translation in sync so ghost position computation works.
+      a.atom.matrix[12] = a.position[0];
+      a.atom.matrix[13] = a.position[1];
+      a.atom.matrix[14] = a.position[2];
     }
   }
 
@@ -114,5 +119,7 @@ export function computeMoleculeGeometry(
     if (r > boundingRadius) boundingRadius = r;
   }
 
-  return { atoms, bonds, boundingRadius };
+  const center: [number, number, number] = [0, 0, 0];
+
+  return { atoms, bonds, boundingRadius, center };
 }
