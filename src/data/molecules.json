@@ -1,0 +1,1449 @@
+[
+  {
+    "names": {
+      "de": "Aceton",
+      "en": "Acetone",
+      "se": "Aceton"
+    },
+    "format": "C 0,O 0,C 0,C 0,H 0,H 0,H 0,H 0,H 0,H 0;0a1,0b3,0c1,0d2,1a0,1c0,2a5,2b6,2c4,2d0,3a8,3b0,3c7,3d9,4c2,5a2,6b2,7c3,8a3,9d3",
+    "formula": "CH3-CO-CH3",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Aceton.ogg",
+      "en": "Aceton.ogg",
+      "se": "SEAceton.ogg"
+    },
+    "infotext": {
+      "de": "Aceton, auch Propanon genannt, ist eine klare, \nfarblose, aromatisch riechende Flüssigkeit. \nSie ist leicht flüchtig und hat eine \nSchmelztemperatur von -95°C und einen Siedepunkt \nvon 56°C. Aceton ist mit den meisten organischen \nLösungsmitteln und Wasser mischbar und ist \nselbst ein gutes Lösungsmittel z.B. für Öle, \nFette, Harze, Cellulose und Ethin. Daher wird \nes als universelles Lösungsmittel verwendet. \nNeben der Feuergefährlichkeit von Aceton können \nlängere Einwirkungen auf die Haut entzündliche \nRötungen hervorrufen. Die Dämpfe können \nKopfschmerzen, Müdigkeit, Bronchienreizung und \nin hohen Dosen Narkose bewirken.",
+      "en": "English translation missing",
+      "se": "Aceton, också kallat propanon, är en klar färgloss \naromatiskt luktande vätska. \nAceton är flyktigt och har en smältpunkt på -95C \noch en kokpunkt på 56C. \nAceton är blandbart med vatten och de flesta \norganiska lösningsmedel och är själv ett effektivt \nlösningsmedel t.ex. för olja, harts, fett, cellulosa och \netyn/acetylen. Därför används aceton som universellt \nlösningsmedel. \nAceton är mycket lätt antändbart och kan dessutom \nförorsaka en brännande rodnad vid längre påverkan av \nhuden.  Ångorna kan framkalla huvudvärk, trötthet, \nirritation av bronkerna och höga doser kan förorsaka \nnarkos."
+    },
+    "sourceFile": "Aceton.xml"
+  },
+  {
+    "names": {
+      "de": "Acetylen",
+      "en": "Ethyne/Acetylen",
+      "se": "Acetylen"
+    },
+    "format": "C 0,C 0,H 0,H 0;0a1,0b1,0c1,0d3,1a0,1b0,1c0,1d2,2d1,3d0",
+    "formula": "CH#CH",
+    "category": "feuerexplosion",
+    "sounds": {
+      "de": "Acetylen.ogg",
+      "en": "Acetylen.ogg",
+      "se": "Acetylen.ogg"
+    },
+    "infotext": {
+      "de": "Acetylen ist hochexplosiv. Mit Aceton gemischt \nwird es in gelben Druckflaschen gehandelt als \nSchweissgas, es brennt mit Sauerstoff sehr \nheiss. Acetylen ist Ausgangsprodukt vieler \norganischer Stoffe.\nUnterwegs sind fremde Sätze und Glieder.  \nDie Schwestern am Rand der Weltenkrusten,  \nmit sprühenden Vulkanen in den Ohren, verstehen.",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Acetylen.xml"
+  },
+  {
+    "names": {
+      "de": "Alanin",
+      "en": "Alanine",
+      "se": "Alanin"
+    },
+    "format": "C 0,H 0,H 0,H 0,C 0,N 0,H 0,C 0,H 0,H 0,O 0,O 0,H 0;0a1,0b2,0c3,0d4,1a0,2b0,3c0,4a7,4b6,4c5,4d0,5a8,5c4,5d9,6b4,7a4,7b10,7c11,7d10,8a5,9d5,10b7,10d7,11a12,11c7,12a11",
+    "formula": "CH3-CH(NH2)-COOH",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Alanin.ogg",
+      "en": "Alanin.ogg",
+      "se": "Alanin.ogg"
+    },
+    "infotext": {
+      "de": "Alanin, eine Aminosäure. Information angeordnet, \nhalbwissend, wohin wir gehen und streng aus \ndem Losen bauen. Information, die nächste \nSicht, die wirkt und zielt auf etwas Fremdes \nund Unerfülltes hin.",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Alanin.xml"
+  },
+  {
+    "names": {
+      "de": "Ameisensäure",
+      "en": "Formic Acid",
+      "se": "Myrsyra"
+    },
+    "format": "C 0,H 0,O 0,O 0,H 0;0a3,0b1,0c2,0d3,1b0,2c0,2d4,3a0,3d0,4d2",
+    "formula": "HCOOH",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Ameisensaeure.ogg",
+      "en": "Ameisensaeure.ogg",
+      "se": "Ameisensaeure.ogg"
+    },
+    "infotext": {
+      "de": "Ameisensäure ist eine klare, flüchtige, stechend riechende, farblose Flüssigkeit. Mit Wasser, Ethanol, Ether und Glycerin ist sie in jedem Verhältnis mischbar. Verwendet wird Ameisensäure zum Desinfizieren von Bier- u. Weinfässern; als Zwischenprodukt für Pharmazeutika und Pflanzenschutzmittel und in der Textil- und Lederindustrie. Sie ist ätzend sowie gesundheitsschädlich beim Verschlucken und Einatmen. Zur direkten Herstellung von Ameisensäure geht man von Kohlenmonoxid aus, das zu Ameisensäure hydratisiert. Ameisensäure ist ein natürliches Zwischen- und Endprodukt im pflanzlichen und tierischen Stoffwechsel, die von verschiedenen Insekten als Wehrsubstanz verwendet wird.",
+      "en": "English translation missing",
+      "se": "Myrsyra är en klar, flyktig starkt luktande färgloss vätska \nsom är blandbart med vatten, etanol, eter och glycerin. \nMyrsyra används som desinfektionsmedel av öl- och \nvinfat, som halvfabrikat för läkemedel och ogräsmedel \nsamt i textil- och läderindustrin. Myrsyra är etsande och \nhälsofarlig vid intagande och inandning. Vid direkt \nframställning av myrsyra utgår man från kolmonoxid som \noxideras. Myrsyra är en naturlig mellan- och slutprodukt \ni ämnesomsättning hos växter och djur och används av \ninsekter som skyddsmedel."
+    },
+    "sourceFile": "Ameisensaeure.xml"
+  },
+  {
+    "names": {
+      "de": "Ammoniak",
+      "en": "Ammonia",
+      "se": "Ammoniak"
+    },
+    "format": "N 0,H 0,H 0,H 0;0a3,0b1,0c2,1b0,2c0,3a0",
+    "formula": "NH3",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {
+      "de": "Ammoniak (Ammonium ist das Ion NH4+) Haushalt \nAmmoniak ist ein giftiges stechend riechendes \nGas.  Im Wasser gelöstes Ammoniak oder \nSalmiakgeist ist eine ätzende Lauge. Ammoniak \nist in wässrigen Farbanstrichen vorhanden, \ndie so stinken.",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Ammoniak.xml"
+  },
+  {
+    "names": {
+      "de": "Anilin",
+      "en": "Aniline",
+      "se": "Anilin"
+    },
+    "format": "C 1,C 1,C 1,C 1,C 1,C 1,N 0,H 0,H 0,H 0,H 0,H 0,H 0,H 0;0a12,0b5,0c1,0d5,1a11,1b2,1c0,1d2,2a9,2b1,2c3,2d1,3a10,3b4,3c2,3d4,4a6,4b3,4c5,4d3,5a13,5b0,5c4,5d0,6a4,6c7,6d8,7c6,8d6,9a2,10a3,11a1,12a0,13a5",
+    "formula": "C6H5-NH2",
+    "category": "-",
+    "sounds": {
+      "de": "Anilin.ogg",
+      "en": "Anilin.ogg",
+      "se": "Anilin.ogg"
+    },
+    "infotext": {
+      "de": "German translation missing",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Anilin.xml"
+  },
+  {
+    "names": {
+      "de": "Benzoesäure",
+      "en": "Benzoic acid",
+      "se": "Bensoesyra"
+    },
+    "format": "C 1,C 1,C 1,C 1,C 1,C 1,C 0,O 0,O 0,H 0,H 0,H 0,H 0,H 0,H 0;0a13,0b5,0c1,0d5,1a6,1b2,1c0,1d2,2a10,2b1,2c3,2d1,3a11,3b4,3c2,3d4,4a12,4b3,4c5,4d3,5a14,5b0,5c4,5d0,6a1,6b8,6c7,6d7,7c6,7d6,8a9,8b6,9a8,10a2,11a3,12a4,13a0,14a5",
+    "formula": "-",
+    "category": "-",
+    "sounds": {
+      "de": "Benzoesaeure.ogg",
+      "en": "Benzoesaeure.ogg",
+      "se": "Benzoesaeure.ogg"
+    },
+    "infotext": {
+      "de": "German text missing",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Benzoesaeure.xml"
+  },
+  {
+    "names": {
+      "de": "Blausäure",
+      "en": "Cyanide",
+      "se": "Blåsyra"
+    },
+    "format": "C 0,H 0,N 0;0a2,0b2,0c1,0d2,1c0,2a0,2b0,2d0",
+    "formula": "HCN",
+    "category": "gifte",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {
+      "de": "Blausäure (CN- Cyanid Ion ) Gifte\nBlausäure riecht bittermandelähnlich und ist \nsehr giftig. In Aprikosenkernen sind auch \nSpuren davon. Die Nüsse hängen, Schalen der \nVerwesung reiben sich schon in den Ästen,\nmit der Ungeduld ausgelegter Boote.",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Blausaeure.xml"
+  },
+  {
+    "names": {
+      "de": "Bromgas",
+      "en": "Bromide gas",
+      "se": "Bromgas"
+    },
+    "format": "Br 0,Br 0;0b1,1b0",
+    "formula": "Br2",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {
+      "de": "Brom Haushalt\nDas braune Brom ist ein bei Raumtemperatur \nflüssiges Element, das gilt sonst nur für \nQuecksilber. Es dient zur Herstellung von \nvielen Bromverbindungen: von Filmschichten, \nroten Farbstoffen, bis hin zu Tranquilizern \nund Kampfstoffen. Lieber doch rote Äpfel \nund rote Blüten, man weiss nicht ob aus den \nTaschen oder direkt aus Händen gezogen und \nverteilt an Passanten, wie vom Apfelbaum.",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Brom.xml"
+  },
+  {
+    "names": {
+      "de": "Bromaceton",
+      "en": "Bromacetone",
+      "se": "Bromaceton"
+    },
+    "format": "C 0,O 0,C 0,C 0,H 0,H 0,H 0,Br 0,Br 0,Br 0;0a2,0b3,0c1,0d1,1c0,1d0,2a0,2b7,2c8,2d9,3a4,3b0,3c5,3d6,4a3,5c3,6d3,7b2,8c2,9d2",
+    "formula": "CH3-CO-CBr3",
+    "category": "gifte",
+    "sounds": {
+      "de": "Bromaceton.ogg",
+      "en": "Bromaceton.ogg",
+      "se": "Bromaceton.ogg"
+    },
+    "infotext": {
+      "de": "Bromaceton Gift\nBromaceton, das Tränengas: Reizt aufgebrachte \nMengen. Es folgt das Kippen und Umstossen \nder Ruhebänke, sodass die Bankplanken verzogen \nsind, Zeit für Zeit, und Metall wird länger, \nwie ein Rumpf, der nur noch zu den Schultern \nreicht. Daran kann man sich hochziehen in das \nNest aus kleiner Kraft und nochmals froh sein.",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Bromaceton.xml"
+  },
+  {
+    "names": {
+      "de": "Bromtrichlorethan/(Halongas)",
+      "en": "Bromo-trichloro-methane",
+      "se": "Bromtrikloretan"
+    },
+    "format": "C 0,Cl 0,Cl 0,Cl 0,Br 0;0a4,0b2,0c1,0d3,1c0,2b0,3d0,4a0",
+    "formula": "CCl3Br",
+    "category": "feuer",
+    "sounds": {
+      "de": "Bromtrichlorethan.ogg",
+      "en": "Bromtrichlorethan.ogg",
+      "se": "Bromtrichlorethan.ogg"
+    },
+    "infotext": {
+      "de": "Missing",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Bromtrichlorethan.xml"
+  },
+  {
+    "names": {
+      "de": "Bromwasserstoff",
+      "en": "Hydrogen Bromide",
+      "se": "Bromväte"
+    },
+    "format": "H 0,Br 0;0b1,1b0",
+    "formula": "HBr",
+    "category": "umwelt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {
+      "de": "Bromwasserstoff (Br(-) Bromid) Umwelt\nBromwasserstoff ist ein farbloses Gas, in \nWasser heisst es Bromwasserstoff-Säure. \nBildet mit Salzionen Bromide, kommt also \nnormalerweise z. B in Salzseen und im \nMeer vor.",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Bromwasserstoff.xml"
+  },
+  {
+    "names": {
+      "de": "Chlorbenzol",
+      "en": "Chlorobenzene",
+      "se": "Klorbensen"
+    },
+    "format": "C 1,C 1,C 1,C 1,C 1,C 1,Cl 0,H 0,H 0,H 0,H 0,H 0;0a9,0b5,0c1,0d5,1a7,1b2,1c0,1d2,2a6,2b1,2c3,2d1,3a8,3b4,3c2,3d4,4a10,4b3,4c5,4d3,5a11,5b0,5c4,5d0,6a2,7a1,8a3,9a0,10a4,11a5",
+    "formula": "C6H5Cl",
+    "category": "-",
+    "sounds": {
+      "de": "Chlorbenzol.ogg",
+      "en": "Chlorbenzol.ogg",
+      "se": "Chlorbenzol.ogg"
+    },
+    "infotext": {
+      "de": "German translation missing",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Chlorbenzol.xml"
+  },
+  {
+    "names": {
+      "de": "Chlorgas",
+      "en": "Chlorine gas",
+      "se": "Klorgas"
+    },
+    "format": "Cl 0,Cl 0;0b1,1b0",
+    "formula": "Cl2",
+    "category": "gifte",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {
+      "de": "Chlorgas Gifte \nChlorgas ist gelbgrünes, stechendes und \nLungenbläschen verätzendes Atemgift und \nKampfgas. Auf lebendes Gewebe wirkt \nChlor extrem zerstörend und tödlich.  \nMit Chlor gebleichtes Papier enthält \noft krebserzeugende Rückstände, und \nsetzt noch als Müll schädliche Stoffe \nfrei.",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Chlorgas.xml"
+  },
+  {
+    "names": {
+      "de": "Dibromethan/(Ethylenbromid)",
+      "en": "Ethylene Dibromide",
+      "se": "Dibrometan"
+    },
+    "format": "C 0,C 0,H 0,H 0,Br 0,Br 0,H 0,H 0;0a7,0b5,0c1,0d6,1a2,1b3,1c0,1d4,2a1,3b1,4d1,5b0,6d0,7a0",
+    "formula": "BrCH2-CH2Br",
+    "category": "gifte",
+    "sounds": {
+      "de": "Dibromethan.ogg",
+      "en": "Dibromethan.ogg",
+      "se": "Dibromethan.ogg"
+    },
+    "infotext": {
+      "de": "Dibromethan (Ethylenbromid) Gifte \nEthylenbromid ist ein Gas von \nknoblauchartigem Geruch, ist \nhautreizend und mutagen. Eingesetzt \nwird es als Kraftstoffbeimischung \nund Pflanzenschutzmittel",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Dibromethan.xml"
+  },
+  {
+    "names": {
+      "de": "Dichlordifluormethan/(Frigen)",
+      "en": "Dichloro-difluoro-methane",
+      "se": "Diklordifluormetan/(Frigen)"
+    },
+    "format": "C 0,Cl 0,Cl 0,F 0,F 0;0a4,0b3,0c1,0d2,1c0,2d0,3b0,4a0",
+    "formula": "CCl2F2",
+    "category": "umwelt",
+    "sounds": {
+      "de": "Dichlordifluormethan.ogg",
+      "en": "Dichlordifluormethan.ogg",
+      "se": "Dichlordifluormethan.ogg"
+    },
+    "infotext": {
+      "de": "Dichlordifluormethan (Frigen) FCKW Halogenalkane Umwelt\nDichlordifluormethan oder Frigen: Gehört \nzu den ozonzerstörenden \nFluor-Chlor-Kohlenwasserstoffen, aus \nSpraygasen und Kühlmitteln. Starke \nUV-Strahlung spaltet von dem Treibgas \nChloratome ab. Diese zerreißen Ozonmoleküle \ngerade kettenweise und die Ozonschicht \nder Atmosphäre schwindet. Riesige \nOzonlöcher über den Kontinenten  \nlassen zellschädigende UV-B Strahlung \nunabgeschirmt durch. Wann bleibt das \nLoch über einer Welt, das am Rand sich \nauftut, freundlich, als wäre es das \nNest und die Umarmung einer alten \nBekannten. Nur weiter gefehlt.",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Dichlordifluormethan.xml"
+  },
+  {
+    "names": {
+      "de": "Dichlormethan/Methylenchlorid",
+      "en": "Dichloromethane",
+      "se": "Diklormetan/Metylenklorid"
+    },
+    "format": "C 0,H 0,H 0,Cl 0,Cl 0;0a4,0b2,0c1,0d3,1c0,2b0,3d0,4a0",
+    "formula": "CH2Cl2",
+    "category": "umwelt",
+    "sounds": {
+      "de": "Dichlormethan.ogg",
+      "en": "Dichlormethan.ogg",
+      "se": "Dichlormethan.ogg"
+    },
+    "infotext": {
+      "de": "Dichlormethan, Methylenchlorid Umwelt\nDichlormethan ist ein industrieller \nStoff zur Herstellung von Vinylchlorid \nUnd PVC. Dichlormethan ist ein Lösungsmittel \nund auch Treibgasbestandteil. Es ist \ngiftig. Beim Verbrennen entsteht das \nGiftgas Phosgen.",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Dichlormethan.xml"
+  },
+  {
+    "names": {
+      "de": "Diethylether",
+      "en": "Diethyl ether",
+      "se": "Dietyleter"
+    },
+    "format": "O 0,C 0,C 0,H 0,H 0,H 0,H 0,H 0,C 0,H 0,H 0,C 0,H 0,H 0,H 0;0a8,0d1,1a2,1b4,1c3,1d0,2a1,2b6,2c5,2d7,3c1,4b1,5c2,6b2,7d2,8a0,8b10,8c11,8d9,9d8,10b8,11a12,11b14,11c8,11d13,12a11,13d11,14b11",
+    "formula": "C2H5-O-C2H5",
+    "category": "gifte",
+    "sounds": {
+      "de": "Diethylether.ogg",
+      "en": "Diethylether.ogg",
+      "se": "Diethylether.ogg"
+    },
+    "infotext": {
+      "de": "Diethylether Gift \nDiethylether. Ether ist ein Narkosemittel. \nEs wird als leicht verdunstendes \nExtraktionsmittel gebraucht um \nStoffgemische zu trennen. Doch Verweis \num Verweis zeigt nur ein Ende. Sollte \ndoch etwas sein, fehlt noch der Griff \ndanach. Zerziehend, zerdehnend die \nEntfernung der Dinge der eigenen Sicht.",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Diethylether.xml"
+  },
+  {
+    "names": {
+      "de": "Dimethylamin",
+      "en": "Dimethylamine",
+      "se": "Dimetylamin"
+    },
+    "format": "C 0,H 0,H 0,H 0,N 0,C 0,H 0,H 0,H 0,H 0;0a1,0b3,0c4,0d2,1a0,2d0,3b0,4b9,4c0,4d5,5a6,5b8,5c7,5d4,6a5,7c5,8b5,9b4",
+    "formula": "CH3-NH-CH3",
+    "category": "explosion",
+    "sounds": {
+      "de": "Dimethylamin.ogg",
+      "en": "Dimethylamin.ogg",
+      "se": "Dimethylamin.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Dimethylamin.xml"
+  },
+  {
+    "names": {
+      "de": "Essigsäure",
+      "en": "Acetic acid",
+      "se": "Ättikssyra"
+    },
+    "format": "C 0,H 0,H 0,H 0,C 0,O 0,H 0,O 0;0a1,0b2,0c4,0d3,1a0,2b0,3d0,4a7,4b7,4c0,4d5,5c6,5d4,6c5,7a4,7b4",
+    "formula": "CH3-COOH",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Essigsaeure.ogg",
+      "en": "Essigsaeure.ogg",
+      "se": "Essigsaeure.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Essigsaeure.xml"
+  },
+  {
+    "names": {
+      "de": "Essigsäureethylester/(Ethylacetat)",
+      "en": "Ethyl acetate",
+      "se": "Etylacetat"
+    },
+    "format": "C 0,O 0,C 0,O 0,H 0,H 0,H 0,C 0,H 0,H 0,C 0,H 0,H 0,H 0;0a1,0b3,0c1,0d2,1a0,1c0,2a5,2b6,2c4,2d0,3b0,3c7,4c2,5a2,6b2,7a9,7b8,7c3,7d10,8b7,9a7,10a12,10b11,10c13,10d7,11b10,12a10,13c10",
+    "formula": "CH3-CO-O-C2H5",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Ethylacetat.ogg",
+      "en": "Ethylacetat.ogg",
+      "se": "Ethylacetat.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Essigsaeureethylester.xml"
+  },
+  {
+    "names": {
+      "de": "Ethangas",
+      "en": "Ethane gas",
+      "se": "Etangas"
+    },
+    "format": "C 0,C 0,H 0,H 0,H 0,H 0,H 0,H 0;0a7,0b5,0c1,0d6,1a2,1b3,1c0,1d4,2a1,3b1,4d1,5b0,6d0,7a0",
+    "formula": "CH3-CH3",
+    "category": "feuerexplosion",
+    "sounds": {
+      "de": "Ethan.ogg",
+      "en": "Ethan.ogg",
+      "se": "Ethan.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Ethangas.xml"
+  },
+  {
+    "names": {
+      "de": "Ethanol",
+      "en": "Ethanol",
+      "se": "Etanol"
+    },
+    "format": "C 0,H 0,H 0,C 0,O 0,H 0,H 0,H 0,H 0;0a3,0b2,0c1,0d4,1c0,2b0,3a0,3b6,3c5,3d7,4a8,4d0,5c3,6b3,7d3,8a4",
+    "formula": "CH3-CH2-OH",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Ethanol.ogg",
+      "en": "Ethanol.ogg",
+      "se": "Ethanol.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Ethanol.xml"
+  },
+  {
+    "names": {
+      "de": "Ethen",
+      "en": "Ethene",
+      "se": "Eten"
+    },
+    "format": "C 0,H 0,H 0,C 0,H 0,H 0;0a3,0b3,0c1,0d2,1c0,2d0,3a0,3b0,3c4,3d5,4c3,5d3",
+    "formula": "CH2=CH2",
+    "category": "feuerexplosion",
+    "sounds": {
+      "de": "Ethen.ogg",
+      "en": "Ethen.ogg",
+      "se": "Ethen.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Ethen.xml"
+  },
+  {
+    "names": {
+      "de": "Ethylenglykol/(1,2-Ethandiol)",
+      "en": "Ethylene glycol/(1,2-Ethanediol)",
+      "se": "Etylenglykol/(1,2-Etandiol)"
+    },
+    "format": "C 0,C 0,O 0,H 0,H 0,H 0,H 0,H 0,O 0,H 0;0a8,0b1,0c6,0d7,1a2,1b0,1c4,1d5,2a1,2c3,3c2,4c1,5d1,6c0,7d0,8a0,8d9,9d8",
+    "formula": "HO-CH2-CH2-OH",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Ethylenglycol.ogg",
+      "en": "Ethylenglycol.ogg",
+      "se": "Ethylenglycol.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Ethylenglykol.xml"
+  },
+  {
+    "names": {
+      "de": "Fluorgas",
+      "en": "Fluoride gas",
+      "se": "Fluorgas"
+    },
+    "format": "F 0,F 0;0b1,1b0",
+    "formula": "F2",
+    "category": "gifte",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Fluorgas.xml"
+  },
+  {
+    "names": {
+      "de": "Fluorwasserstoff",
+      "en": "Hydrofluoride",
+      "se": "Väteflourid"
+    },
+    "format": "F 0,H 0;0b1,1b0",
+    "formula": "FH",
+    "category": "gifte",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Fluorwasserstoff.xml"
+  },
+  {
+    "names": {
+      "de": "Formaldehyd",
+      "en": "Formaldehyde",
+      "se": "Formaldehyd"
+    },
+    "format": "C 0,H 0,H 0,O 0;0a2,0b3,0c3,0d1,1d0,2a0,3b0,3c0",
+    "formula": "HCHO",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Formaldehyd.ogg",
+      "en": "Formaldehyd.ogg",
+      "se": "Formaldehyd.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Formaldehyd.xml"
+  },
+  {
+    "names": {
+      "de": "Geraniol/(Rose)",
+      "en": "Geraniol",
+      "se": "Geraniol"
+    },
+    "format": "C 0,C 0,C 0,H 0,H 0,H 0,H 0,H 0,H 0,C 0,C 0,C 0,H 0,H 0,H 0,H 0,H 0,C 0,C 0,H 0,H 0,H 0,C 0,C 0,H 0,H 0,H 0,O 0,H 0;0a6,0b1,0c7,0d8,1a9,1b0,1c9,1d2,2a4,2b5,2c3,2d1,3c2,4a2,5b2,6a0,7c0,8d0,9a1,9b14,9c1,9d10,10a13,10b11,10c12,10d9,11a15,11b10,11c16,11d17,12c10,13a10,14b9,15a11,16c11,17a22,17b22,17c18,17d11,18a19,18b21,18c17,18d20,19a18,20d18,21b18,22a17,22b17,22c23,22d24,23a27,23b25,23c22,23d26,24d22,25b23,26d23,27a23,27d28,28d27",
+    "formula": "-",
+    "category": "-",
+    "sounds": {
+      "de": "Geraniol.ogg",
+      "en": "Geraniol.ogg",
+      "se": "Geraniol.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Geraniol.xml"
+  },
+  {
+    "names": {
+      "de": "Glycerin",
+      "en": "Glycerine",
+      "se": "Glycerin"
+    },
+    "format": "C 0,O 0,C 0,C 0,O 0,O 0,H 0,H 0,H 0,H 0,H 0,H 0,H 0,H 0;0a1,0b9,0c2,0d8,1a0,1d11,2a4,2b12,2c0,2d3,3a5,3b7,3c6,3d2,4a2,4b13,5a3,5c10,6c3,7b3,8d0,9b0,10c5,11d1,12b2,13b4",
+    "formula": "HO-CH2CH(OH)CH2-OH",
+    "category": "feuerexplosion",
+    "sounds": {
+      "de": "Glycerin.ogg",
+      "en": "Glycerin.ogg",
+      "se": "Glycerin.ogg"
+    },
+    "infotext": {
+      "se": "Glycerin som också kallas 123-propantriol är en klar, \nfärglös, luktfri och sött smakande vätska. Glycerin \nlöses lätt i vatten och alkohol samt löses svårare i eter. \nVid hudkontakt kan lätt irritation uppstå. Vid intag av \nstörre mängder glycerin kan förgiftningssymptom med \nhuvudvärk, njursmärtor och blodig diarré uppstå.",
+      "de": "Clycerin, auch 1,2,3-Propantriol genannt, ist eine \nfarblose, klare, geruchlose, süß schmeckende \nFlüssigkeit. Sie ist in Wasser und Alkohol gut und \nin Ether wenig löslich. Bei Körperkontakt können \nleichte Hautreizungen auftreten. Beim Verschlucken \ngrösserer Mengen Glycerins kann es zu einem \nRauschzustand mit Kopfschmerzen, Cyanose, \nNierenschmerzen und blutigen Durchfällen kommen."
+    },
+    "sourceFile": "Glycerin.xml"
+  },
+  {
+    "names": {
+      "de": "Glycin",
+      "en": "Glycine",
+      "se": "Glycin"
+    },
+    "format": "C 0,H 0,H 0,N 0,C 0,H 0,H 0,O 0,O 0,H 0;0a2,0b3,0c4,0d1,1d0,2a0,3a5,3b0,3c6,4a7,4b7,4c0,4d8,5a3,6c3,7a4,7b4,8b9,8d4,9b8",
+    "formula": "NH2-CH2-COOH",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Glycin.ogg",
+      "en": "Glycin.ogg",
+      "se": "Glycin.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Glycin.xml"
+  },
+  {
+    "names": {
+      "de": "Hypobromige Sure",
+      "en": "Hypobromous acid",
+      "se": "Underbromsyrlighet"
+    },
+    "format": "H 0,O 0,Br 0;0b1,1a2,1b0,2a1",
+    "formula": "HOBr",
+    "category": "gifte",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Hypobromige_Saeure.xml"
+  },
+  {
+    "names": {
+      "de": "Kaliumbromid",
+      "en": "Potassium bromide",
+      "se": "Kaliumbromid"
+    },
+    "format": "K 0,Br 0;0b1,1b0",
+    "formula": "KBr",
+    "category": "umwelt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Kaliumbromid.xml"
+  },
+  {
+    "names": {
+      "de": "Kaliumcarbonat/(Pottasche)",
+      "en": "Potassium carbonate/(Potash)",
+      "se": "Kaliumkarbonat/(Pottaska)"
+    },
+    "format": "C 0,O 0,O 0,O 0,K 0,K 0;0a2,0b1,0c1,0d3,1b0,1c0,2a0,2b4,3c5,3d0,4b2,5c3",
+    "formula": "K2CO3",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Kaliumcarbonat.xml"
+  },
+  {
+    "names": {
+      "de": "Kaliumchlorid",
+      "en": "Potassium chloride",
+      "se": "Kaliumklorid"
+    },
+    "format": "K 0,O 0,Cl 0;0b1,1a2,1b0,2a1",
+    "formula": "KOCl",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Kaliumchlorid.xml"
+  },
+  {
+    "names": {
+      "de": "Kaliumcyanid",
+      "en": "Potassium cyanide",
+      "se": "Kaliumcyanid"
+    },
+    "format": "C 0,K 0,N 0;0a1,0b2,0c2,0d2,1a0,2b0,2c0,2d0",
+    "formula": "KCN",
+    "category": "gifte",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Kaliumcyanid.xml"
+  },
+  {
+    "names": {
+      "de": "Kaliumoxid",
+      "en": "Potassium oxide",
+      "se": "Kaliumoxid"
+    },
+    "format": "O 0,K 0,K 0;0a2,0c1,1c0,2a0",
+    "formula": "K2O",
+    "category": "umwelt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Kaliumoxid.xml"
+  },
+  {
+    "names": {
+      "de": "Kohlendioxid",
+      "en": "Carbon dioxide",
+      "se": "Koldioxid"
+    },
+    "format": "C 0,O 0,O 0;0a2,0b2,0c1,0d1,1c0,1d0,2a0,2b0",
+    "formula": "CO2",
+    "category": "umwelt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Kohlendioxid.xml"
+  },
+  {
+    "names": {
+      "de": "Kohlensäure",
+      "en": "Carbonic acid",
+      "se": "Kolsyra"
+    },
+    "format": "C 0,O 0,O 0,O 0,H 0,H 0;0a3,0b1,0c2,0d1,1b0,1d0,2c0,2d4,3a0,3b5,4d2,5b3",
+    "formula": "HO-CO-OH",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Kohlensaeure.xml"
+  },
+  {
+    "names": {
+      "de": "Lithiumhydroxid",
+      "en": "Lithium hydroxide",
+      "se": "Litiumhydroxid"
+    },
+    "format": "Li 0,O 0,H 0;0b1,1a2,1b0,2a1",
+    "formula": "LiOH",
+    "category": "feuer",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Lithiumhydroxid.xml"
+  },
+  {
+    "names": {
+      "de": "Lithiumoxid",
+      "en": "Lithium oxide",
+      "se": "Litiumoxid"
+    },
+    "format": "O 0,Li 0,Li 0;0b1,0c2,1b0,2c0",
+    "formula": "Li2O",
+    "category": "feuer",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Lithiumoxid.xml"
+  },
+  {
+    "names": {
+      "de": "Lithiumchlorid",
+      "en": "Lithium chloride",
+      "se": "Litiumklorid"
+    },
+    "format": "Li 0,Cl 0;0b1,1b0",
+    "formula": "LiCl",
+    "category": "feuer",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Litiumchlorid.xml"
+  },
+  {
+    "names": {
+      "de": "Magnesiumhydroxid",
+      "en": "Magnesium hydroxide",
+      "se": "Magnesiumhydroxid"
+    },
+    "format": "Mg 0,O 0,O 0,H 0,H 0;0a2,0b1,1b0,1d3,2a0,2d4,3d1,4d2",
+    "formula": "Mg(OH)2",
+    "category": "feuerexplosion",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Magnesiumhydroxid.xml"
+  },
+  {
+    "names": {
+      "de": "Magnesiumnitrid",
+      "en": "Magnesium nitride",
+      "se": "Magnesiumnitrid"
+    },
+    "format": "Mg 0,N 0,Mg 0,N 0,Mg 0;0a1,0c1,1a0,1c0,1d2,2c3,2d1,3a4,3b4,3c2,4a3,4b3",
+    "formula": "Mg3N2",
+    "category": "feuerexplosion",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Magnesiumnitrid.xml"
+  },
+  {
+    "names": {
+      "de": "Magnesiumoxid",
+      "en": "Oxomagnesium",
+      "se": "Magnesiumoxid"
+    },
+    "format": "Mg 0,O 0;0a1,0b1,1a0,1b0",
+    "formula": "MgO",
+    "category": "feuerexplosion",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Magnesiumoxid.xml"
+  },
+  {
+    "names": {
+      "de": "Meskalin",
+      "en": "Mescaline",
+      "se": "Meskalin"
+    },
+    "format": "C 1,C 1,C 1,C 1,C 1,C 1,C 0,H 0,H 0,C 0,H 0,H 0,N 0,H 0,H 0,H 0,H 0,C 0,O 0,O 0,H 0,H 0,H 0,C 0,H 0,H 0,H 0,C 0,H 0,H 0,H 0;0a16,0b5,0c1,0d5,1a15,1b2,1c0,1d2,2a6,2b1,2c3,2d1,3a18,3b4,3c2,3d4,4a19,4b3,4c5,4d3,5a17,5b0,5c4,5d0,6a2,6b8,6c9,6d7,7d6,8b6,9a12,9b10,9c6,9d11,10b9,11d9,12a9,12b13,12c14,13b12,14c12,15a1,16a0,17a5,17b21,17c22,17d20,18a3,18d27,19a4,19c23,20d17,21b17,22c17,23a26,23b25,23c19,23d24,24d23,25b23,26a23,27a30,27b28,27c29,27d18,28b27,29c27,30a27",
+    "formula": "-",
+    "category": "-",
+    "sounds": {
+      "de": "Meskalin.ogg",
+      "en": "Meskalin.ogg",
+      "se": "Meskalin.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Meskalin.xml"
+  },
+  {
+    "names": {
+      "de": "Methan",
+      "en": "Methan",
+      "se": "Metan"
+    },
+    "format": "C 0,H 0,H 0,H 0,H 0;0a4,0b2,0c1,0d3,1c0,2b0,3d0,4a0",
+    "formula": "CH4",
+    "category": "feuerexplosion",
+    "sounds": {
+      "de": "Methan.ogg",
+      "en": "Methan.ogg",
+      "se": "SEMetan.ogg"
+    },
+    "infotext": {
+      "se": "Metan är en färglös luktfri gas med smältpunkt \nvid -182ºC och kokpunkt vid -161ºC. Metan är \nlättlösligt i organiska lösningsmedel som alkohol\noch eter och mindre lösligt i vatten. Metan används \növervägande som bränsle. En mindre del används \nsom utgångsämne i en rad viktiga tekniska synteser. \nI naturen finns metan primärt i koksgas och naturgas."
+    },
+    "sourceFile": "Methan.xml"
+  },
+  {
+    "names": {
+      "de": "Methanol",
+      "en": "Methanol",
+      "se": "Metanol"
+    },
+    "format": "C 0,H 0,H 0,H 0,O 0,H 0;0a3,0b2,0c1,0d4,1c0,2b0,3a0,4a5,4d0,5a4",
+    "formula": "CH3-OH",
+    "category": "gifte",
+    "sounds": {
+      "de": "Methanol.ogg",
+      "en": "Methanol.ogg",
+      "se": "Methanol.ogg"
+    },
+    "infotext": {
+      "de": "Methanol und selbst die Dämpfe davon \nverursachen Schädigungen im \nZentralnervensystem: Erblindung, \nNieren-, Herz-, Leberschäden... Die \ntödliche Dosis liegt schon bei einem \nSchluck Methanol. Die Distanz kann \nden Abschiedsmoment aufkommen lassen, \naus dem heraus was verschlungen wurde, \nerbarmungslos, wie im ledrigem Handschuh,\nder nach dem Gruss herausgekehrt liegenblieb.",
+      "en": "English translation missing",
+      "se": "Svensk översättning saknas"
+    },
+    "sourceFile": "Methanol.xml"
+  },
+  {
+    "names": {
+      "de": "Methylamin",
+      "en": "Methyl amine",
+      "se": "Metylamin"
+    },
+    "format": "C 0,H 0,H 0,H 0,N 0,H 0,H 0;0a2,0b3,0c4,0d1,1d0,2a0,3b0,4a5,4c0,4d6,5a4,6d4",
+    "formula": "NH2-CH3",
+    "category": "gifte",
+    "sounds": {
+      "de": "Methylamin.ogg",
+      "en": "Methylamin.ogg",
+      "se": "Methylamin.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Methylamin.xml"
+  },
+  {
+    "names": {
+      "de": "Milchsäure",
+      "en": "Lactic acid",
+      "se": "Mjölksyra"
+    },
+    "format": "C 0,C 0,C 0,H 0,H 0,H 0,H 0,O 0,H 0,O 0,H 0,O 0;0a11,0b1,0c9,0d11,1a6,1b0,1c2,1d7,2a4,2b3,2c1,2d5,3b2,4a2,5d2,6a1,7a8,7d1,8a7,9c0,9d10,10d9,11a0,11d0",
+    "formula": "CH3-CH(OH)-COOH",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Milchsaeure.ogg",
+      "en": "Milchsaeure.ogg",
+      "se": "Milchsaeure.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Milchsaeure.xml"
+  },
+  {
+    "names": {
+      "de": "Natriumbromid",
+      "en": "Sodium bromide",
+      "se": "Natriumbromid"
+    },
+    "format": "Na 0,Br 0;0b1,1b0",
+    "formula": "NaBr",
+    "category": "umwelt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Natriumbromid.xml"
+  },
+  {
+    "names": {
+      "de": "Natriumcarbonat/(Soda)",
+      "en": "Sodium carbonate",
+      "se": "Natriumkarbonat"
+    },
+    "format": "C 0,O 0,O 0,Na 0,Na 0,O 0;0a5,0b5,0c1,0d2,1a3,1c0,2a4,2d0,3a1,4a2,5a0,5b0",
+    "formula": "Na2CO3",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Natriumcarbonat.xml"
+  },
+  {
+    "names": {
+      "de": "Natriumchlorid/(Kochsalz)",
+      "en": "Sodium chloride/(Salt)",
+      "se": "Natriumklorid/(Koksalt)"
+    },
+    "format": "Na 0,Cl 0;0c1,1c0",
+    "formula": "NaCl",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Natriumchlorid.xml"
+  },
+  {
+    "names": {
+      "de": "Natriumfluorid",
+      "en": "Sodium fluoride",
+      "se": "Natriumfluorid"
+    },
+    "format": "Na 0,F 0;0b1,1b0",
+    "formula": "NaF",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Natriumfluorid.xml"
+  },
+  {
+    "names": {
+      "de": "Natriumhydrogencarbonat",
+      "en": "Sodium hydrogen carbonate",
+      "se": "Natriumvätekarbonat"
+    },
+    "format": "C 0,O 0,O 0,O 0,Na 0,H 0;0a3,0b3,0c1,0d2,1a4,1c0,2a5,2d0,3a0,3b0,4a1,5a2",
+    "formula": "NaHCO3",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Natriumhydrogencarbonat.xml"
+  },
+  {
+    "names": {
+      "de": "Natriumhypochlorit/(Javelwasser)",
+      "en": "Sodium Perchlorate",
+      "se": "Natriumhypoklorit"
+    },
+    "format": "Na 0,O 0,Cl 0;0c1,1a2,1c0,2a1",
+    "formula": "NaClO",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Natriumhypochlorit.xml"
+  },
+  {
+    "names": {
+      "de": "Natronlauge",
+      "en": "Sodium Hydroxide",
+      "se": "Natriumhydroxid"
+    },
+    "format": "O 0,Na 0,H 0;0a2,0c1,1c0,2a0",
+    "formula": "NaOH",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Natronlauge.xml"
+  },
+  {
+    "names": {
+      "de": "Oxalsäure",
+      "en": "Oxalic acid",
+      "se": "Oxalsyra"
+    },
+    "format": "C 0,O 0,O 0,C 0,O 0,O 0,H 0,H 0;0a1,0b1,0c2,0d3,1a0,1b0,2b6,2c0,3a5,3b4,3c5,3d0,4b3,4c7,5a3,5c3,6b2,7c4",
+    "formula": "HOOC-COOH",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Oxalsaeure.ogg",
+      "en": "Oxalsaeure.ogg",
+      "se": "Oxalsaeure.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Oxalsaeure.xml"
+  },
+  {
+    "names": {
+      "de": "Phenylacetaldehyd/(Hyazinthe)",
+      "en": "Phenylacetaldehyde",
+      "se": "Fenylacetaldehyd"
+    },
+    "format": "C 1,C 1,C 1,C 1,C 1,C 1,C 0,H 0,H 0,C 0,O 0,H 0,H 0,H 0,H 0,H 0,H 0;0a6,0b5,0c1,0d5,1a12,1b2,1c0,1d2,2a13,2b1,2c3,2d1,3a15,3b4,3c2,3d4,4a16,4b3,4c5,4d3,5a14,5b0,5c4,5d0,6a0,6b9,6c7,6d8,7c6,8d6,9a10,9b6,9c10,9d11,10a9,10c9,11d9,12a1,13a2,14a5,15a3,16a4",
+    "formula": "-",
+    "category": "-",
+    "sounds": {
+      "de": "Phenylacetaldehyd.ogg",
+      "en": "Phenylacetaldehyd.ogg",
+      "se": "Phenylacetaldehyd.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Phenylacetaldehyd.xml"
+  },
+  {
+    "names": {
+      "de": "Phenylacetylen",
+      "en": "Phenylacetylene",
+      "se": "Fenylacetylen"
+    },
+    "format": "C 1,C 1,C 1,C 1,C 1,C 1,C 0,C 0,H 0,H 0,H 0,H 0,H 0,H 0;0a10,0b5,0c1,0d5,1a9,1b2,1c0,1d2,2a6,2b1,2c3,2d1,3a11,3b4,3c2,3d4,4a13,4b3,4c5,4d3,5a12,5b0,5c4,5d0,6a2,6b7,6c7,6d7,7a8,7b6,7c6,7d6,8a7,9a1,10a0,11a3,12a5,13a4",
+    "formula": "C6H5-C#CH",
+    "category": "-",
+    "sounds": {
+      "de": "Phenylacetylen.ogg",
+      "en": "Phenylacetylen.ogg",
+      "se": "Phenylacetylen.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Phenylacetylen.xml"
+  },
+  {
+    "names": {
+      "de": "Phosgen",
+      "en": "Phosgene",
+      "se": "Fosgen"
+    },
+    "format": "C 0,O 0,Cl 0,Cl 0;0a1,0b2,0c1,0d3,1a0,1c0,2b0,3d0",
+    "formula": "COCL2",
+    "category": "gifte",
+    "sounds": {
+      "de": "Phosgen.ogg",
+      "en": "Phosgen.ogg",
+      "se": "Phosgen.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Phosgen.xml"
+  },
+  {
+    "names": {
+      "de": "Propangas",
+      "en": "Propane gas",
+      "se": "Propangas"
+    },
+    "format": "C 0,H 0,H 0,C 0,C 0,H 0,H 0,H 0,H 0,H 0,H 0;0a4,0b3,0c1,0d2,1c0,2d0,3a5,3b0,3c6,3d7,4a0,4b9,4c8,4d10,5a3,6c3,7d3,8c4,9b4,10d4",
+    "formula": "CH3-CH2-CH3",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Propan.ogg",
+      "en": "Propan.ogg",
+      "se": "Propan.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Propangas.xml"
+  },
+  {
+    "names": {
+      "de": "Propen",
+      "en": "Propene",
+      "se": "Propen"
+    },
+    "format": "C 0,H 0,C 0,H 0,H 0,H 0,C 0,H 0,H 0;0a6,0b1,0c2,0d6,1b0,2a4,2b3,2c0,2d5,3b2,4a2,5d2,6a0,6b8,6c7,6d0,7c6,8b6",
+    "formula": "CH2=CH-CH3",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Propen.ogg",
+      "en": "Propen.ogg",
+      "se": "Propen.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Propen.xml"
+  },
+  {
+    "names": {
+      "de": "Salpetrige Säure",
+      "en": "Nitric Acid",
+      "se": "Salpetersyra"
+    },
+    "format": "N 0,O 0,H 0,O 0;0a1,0b3,0c3,1a0,1b2,2b1,3b0,3c0",
+    "formula": "OH-N=O",
+    "category": "umwelt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Salpetrige_Saeure.xml"
+  },
+  {
+    "names": {
+      "de": "Salz der Hypochlorigen Säure",
+      "en": "Sodium Hypochlorite",
+      "se": "Natriumhypoklorit"
+    },
+    "format": "Na 0,O 0,Cl 0;0b1,1b0,1c2,2c1",
+    "formula": "NaOCl",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Salz_der_Hypochlorigen_Saeure.xml"
+  },
+  {
+    "names": {
+      "de": "Salzsäure",
+      "en": "Hydrochloric acid",
+      "se": "Saltsyra"
+    },
+    "format": "H 0,Cl 0;0b1,1b0",
+    "formula": "HCl",
+    "category": "gifte",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Salzsaeure.xml"
+  },
+  {
+    "names": {
+      "de": "Sauerstoffgas",
+      "en": "Oxygen gas",
+      "se": "Syrgas"
+    },
+    "format": "O 0,O 0;0c1,0d1,1c0,1d0",
+    "formula": "O2",
+    "category": "feuerexplosion",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Sauerstoffgas.xml"
+  },
+  {
+    "names": {
+      "de": "Serin",
+      "en": "Serine",
+      "se": "Serin"
+    },
+    "format": "C 0,C 0,N 0,H 0,H 0,C 0,H 0,O 0,H 0,O 0,H 0,O 0,H 0,H 0;0a10,0b13,0c11,0d1,1a6,1b2,1c5,1d0,2a3,2b1,2d4,3a2,4d2,5a9,5b9,5c1,5d7,6a1,7b8,7d5,8b7,9a5,9b5,10a0,11b12,11c0,12b11,13b0",
+    "formula": "HO-CH2-CH(NH2)-COOH",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Serin.ogg",
+      "en": "Serin.ogg",
+      "se": "SESerin.ogg"
+    },
+    "infotext": {
+      "se": "Serin är en icke-essentiell polär aminosyra. \nSerin finns som vitt finkristalligt pulver eller \nsom nålformade sött smakande kristaller. \nSerin har en smältpunkt på 210-220ºC och \nlöser sig i vatten och mineralsyror. Serin finns \ni proteiner samt i rikliga mängder i siden."
+    },
+    "sourceFile": "Serin.xml"
+  },
+  {
+    "names": {
+      "de": "Stickstoff",
+      "en": "Nitrogen gas",
+      "se": "Kvävgas"
+    },
+    "format": "N 0,N 0;0a1,0b1,0c1,1a0,1b0,1c0",
+    "formula": "N2",
+    "category": "umwelt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Stickstoff.xml"
+  },
+  {
+    "names": {
+      "de": "Tetrachlorethylen/Perchlorethylen",
+      "en": "Tetrachloroethylene/Perchloroethylene",
+      "se": "Tetrakloretylen"
+    },
+    "format": "C 0,C 0,Cl 0,Cl 0,Cl 0,Cl 0;0a1,0b5,0c1,0d4,1a0,1b3,1c0,1d2,2d1,3b1,4d0,5b0",
+    "formula": "Cl2C=CCl2",
+    "category": "umwelt",
+    "sounds": {
+      "de": "Tetrachlorethylen.ogg",
+      "en": "Tetrachlorethylen.ogg",
+      "se": "Tetrachlorethylen.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Tetrachlorethylen.xml"
+  },
+  {
+    "names": {
+      "de": "Tetrachlorkohlenstoff/Tetrachlormethan",
+      "en": "Benzinoform/Tetrachloromethane",
+      "se": "Koltetraklorid/Tetraklormetan"
+    },
+    "format": "C 0,Cl 0,Cl 0,Cl 0,Cl 0;0a4,0b2,0c1,0d3,1c0,2b0,3d0,4a0",
+    "formula": "CCl4",
+    "category": "gifte",
+    "sounds": {
+      "de": "Tetrachlormethan.ogg",
+      "en": "Tetrachlormethan.ogg",
+      "se": "Tetrachlormethan.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Tetrachlorkohlenstoff.xml"
+  },
+  {
+    "names": {
+      "de": "Trichlorethylen",
+      "en": "Trichloroethene",
+      "se": "Trikloreten"
+    },
+    "format": "C 0,C 0,Cl 0,Cl 0,Cl 0,H 0;0a5,0b1,0c4,0d1,1a2,1b0,1c3,1d0,2a1,3c1,4c0,5a0",
+    "formula": "HClC=CCl2",
+    "category": "gifte",
+    "sounds": {
+      "de": "Trichlorethylen.ogg",
+      "en": "Trichlorethylen.ogg",
+      "se": "Trichlorethylen.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Trichlorethylen.xml"
+  },
+  {
+    "names": {
+      "de": "Trichlormethan/(Chloroform)",
+      "en": "Trichloromethane/(Chloroform)",
+      "se": "Triklormetan/(Kloroform)"
+    },
+    "format": "C 0,H 0,Cl 0,Cl 0,Cl 0;0a4,0b2,0c1,0d3,1c0,2b0,3d0,4a0",
+    "formula": "CHCl3",
+    "category": "gifte",
+    "sounds": {
+      "de": "Trichlormethan.ogg",
+      "en": "Trichlormethan.ogg",
+      "se": "Trichlormethan.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Trichlormethan.xml"
+  },
+  {
+    "names": {
+      "de": "Trifluoramin/Stickstofffluorid",
+      "en": "Trifluoroamine",
+      "se": "Kvävetriflourid"
+    },
+    "format": "N 0,F 0,F 0,F 0;0a3,0b1,0c2,1b0,2c0,3a0",
+    "formula": "NF3",
+    "category": "explosion",
+    "sounds": {
+      "de": "Trifluoramin.ogg",
+      "en": "Trifluoramin.ogg",
+      "se": "Trifluoramin.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Trifluoramin.xml"
+  },
+  {
+    "names": {
+      "de": "Vinylchlorid",
+      "en": "Vinyl Chloride",
+      "se": "Vinylklorid"
+    },
+    "format": "C 0,H 0,H 0,C 0,H 0,Cl 0;0a3,0b3,0c2,0d1,1d0,2c0,3a0,3b0,3c4,3d5,4c3,5d3",
+    "formula": "H2C=CHCl",
+    "category": "haushalt",
+    "sounds": {
+      "de": "Vinylchlorid.ogg",
+      "en": "Vinylchlorid.ogg",
+      "se": "Vinylchlorid.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Vinylchlorid.xml"
+  },
+  {
+    "names": {
+      "de": "Wasser",
+      "en": "Water",
+      "se": "Vatten"
+    },
+    "format": "O 0,H 0,H 0;0a2,0d1,1d0,2a0",
+    "formula": "H2O",
+    "category": "umwelt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {
+      "de": "Wasser is gedrinkabel",
+      "en": "English translation missing",
+      "se": "Vatten är en enkel kemisk förening \nsom är flytande vid rumstemperatur och normalt lufttryck.\nDen kemiska formeln för vatten är H2O. Vatten återfinns \nnästan överallt på jorden, då företrädesvis i hav och \nsjöar. Det finns även vatten i rymden, men man känner \ninte till någon plats där det finns flytande vatten \nutanför jorden. De flesta kända organismer behöver \nvatten för att leva."
+    },
+    "sourceFile": "Wasser.xml"
+  },
+  {
+    "names": {
+      "de": "Wasserstoffgas",
+      "en": "Hydrogen gas",
+      "se": "Vätgas"
+    },
+    "format": "H 0,H 0;0a1,1a0",
+    "formula": "H2",
+    "category": "feuerexplosion",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Wasserstoffgas.xml"
+  },
+  {
+    "names": {
+      "de": "Wasserstoffperoxid",
+      "en": "Hydrogen Peroxide",
+      "se": "Väteperoxid"
+    },
+    "format": "O 0,O 0,H 0,H 0;0a1,0c3,1a0,1d2,2d1,3c0",
+    "formula": "H2O2",
+    "category": "haushalt",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "Wasserstoffperoxid.xml"
+  },
+  {
+    "names": {
+      "de": "Zimtaldehyd/(wuerzig,orientalisch)",
+      "en": "Cinnamic Aldehyde",
+      "se": "Kanelaldehyd"
+    },
+    "format": "C 1,C 1,C 1,C 1,C 1,C 1,C 0,H 0,C 0,H 0,C 0,H 0,O 0,H 0,H 0,H 0,H 0,H 0;0a13,0b5,0c1,0d5,1a6,1b2,1c0,1d2,2a15,2b1,2c3,2d1,3a17,3b4,3c2,3d4,4a16,4b3,4c5,4d3,5a14,5b0,5c4,5d0,6a1,6b7,6c8,6d8,7b6,8a10,8b9,8c6,8d6,9b8,10a8,10b11,10c12,10d12,11b10,12c10,12d10,13a0,14a5,15a2,16a4,17a3",
+    "formula": "-",
+    "category": "-",
+    "sounds": {
+      "de": "Zimtaldehyd.ogg",
+      "en": "Zimtaldehyd.ogg",
+      "se": "Zimtaldehyd.ogg"
+    },
+    "infotext": {},
+    "sourceFile": "Zimtaldehyd.xml"
+  },
+  {
+    "names": {
+      "de": "para-Chlortoluol",
+      "en": "Chloromethylbenzene",
+      "se": "Bensylklorid"
+    },
+    "format": "C 1,C 1,C 1,C 1,C 1,C 1,C 0,H 0,H 0,H 0,H 0,H 0,H 0,H 0,Cl 0;0a13,0b5,0c1,0d5,1a10,1b2,1c0,1d2,2a6,2b1,2c3,2d1,3a11,3b4,3c2,3d4,4a12,4b3,4c5,4d3,5a14,5b0,5c4,5d0,6a2,6b7,6c9,6d8,7b6,8d6,9c6,10a1,11a3,12a4,13a0,14a5",
+    "formula": "-",
+    "category": "-",
+    "sounds": {
+      "de": "-",
+      "en": "-",
+      "se": "-"
+    },
+    "infotext": {},
+    "sourceFile": "para-Chlortoluol.xml"
+  }
+]
