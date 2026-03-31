@@ -19,6 +19,7 @@
     "vitest": "^2.1.0"
   },
   "dependencies": {
+    "@ar-js-org/artoolkit5-js": "^0.3.2",
     "three": "^0.183.2"
   }
 }
