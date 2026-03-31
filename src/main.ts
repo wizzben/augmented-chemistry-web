@@ -84,7 +84,7 @@ builder.onRecognized = (recognized) => {
 
 // ─── Desktop controls ─────────────────────────────────────────────────────
 if (sceneManager) {
-  desktopControls = new DesktopControls(sceneManager, builder);
+  desktopControls = new DesktopControls(sceneManager, builder, infoBar);
 }
 
 // ─── Element palette ──────────────────────────────────────────────────────

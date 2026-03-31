@@ -36,10 +36,15 @@ export class SceneManager {
     fillLight.position.set(-1, -0.5, -1);
     this.scene.add(fillLight);
 
-    // Controls
+    // Controls — rotation works anywhere on canvas, scroll to zoom
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    this.controls.dampingFactor = 0.08;
+    this.controls.rotateSpeed = 0.6;
+    this.controls.zoomSpeed = 1.2;
+    this.controls.enablePan = false;   // pan adds confusion for molecules
+    this.controls.minDistance = 1;
+    this.controls.maxDistance = 100;
 
     // Resize
     window.addEventListener('resize', this.onResize);

@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import type { Atom } from '@/chemistry/Atom';
 import { mat44Multiply } from '@/chemistry/Matrix44';
 import { setTetraMatrices, type TetraMatrices } from '@/chemistry/TetraGeometry';
-import { AC_ATOM_CONNECTION, AC_ATOM_MAX_CONNECTIONS } from '@/chemistry/constants';
+import { AC_ATOM_COUNT_CONNECTIONS_OF_BITFIELD } from '@/chemistry/constants';
+import { getPoolOfPossibleConnections } from '@/chemistry/Bitfield';
 
 export interface GhostInfo {
   mesh: THREE.Mesh;
@@ -10,16 +11,25 @@ export interface GhostInfo {
   connectionBitfield: number;
 }
 
-const GHOST_GEOMETRY = new THREE.SphereGeometry(0.3, 16, 8);
-const GHOST_MATERIAL = new THREE.MeshPhongMaterial({
-  color: 0xaaaaaa,
-  transparent: true,
-  opacity: 0.5,
-  depthWrite: false,
-});
+// Small dots — raycasted for interaction
+const GHOST_GEOMETRY = new THREE.SphereGeometry(0.1, 8, 6);
+const GHOST_MATERIAL_1 = new THREE.MeshPhongMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.8, depthWrite: false });
+const GHOST_MATERIAL_2 = new THREE.MeshPhongMaterial({ color: 0xdddd00, transparent: true, opacity: 0.8, depthWrite: false });
+const GHOST_MATERIAL_3 = new THREE.MeshPhongMaterial({ color: 0x00ccdd, transparent: true, opacity: 0.8, depthWrite: false });
+const GHOST_MATERIALS = [GHOST_MATERIAL_1, GHOST_MATERIAL_2, GHOST_MATERIAL_3];
+
+// Wireframe tetrahedron — visual context only, not raycasted
+const WIREFRAME_MATERIAL = new THREE.LineBasicMaterial({ color: 0x4466aa, transparent: true, opacity: 0.35 });
+
+// Corner slot indices in the 14-entry transform array (bitfields 1,2,4,8 → indices 0,1,3,7)
+const CORNER_INDICES = [0, 1, 3, 7] as const;
+// All 6 edges of a tetrahedron (pairs of corner indices into CORNER_INDICES)
+const TETRA_EDGES = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]] as const;
 
 export class GhostRenderer {
   private ghosts: GhostInfo[] = [];
+  private wireframe: THREE.LineSegments | null = null;
+  private wireframeGeo: THREE.BufferGeometry | null = null;
   private tetra: TetraMatrices;
 
   constructor(tetra?: TetraMatrices) {
@@ -27,27 +37,50 @@ export class GhostRenderer {
   }
 
   /**
-   * Show ghost spheres at all free bond slots of the given atom.
-   * Returns the GhostInfo list so DesktopControls can raycast against them.
+   * Show a wireframe tetrahedron + small bond-order dots at all valid positions.
+   * Returns GhostInfo list so DesktopControls can raycast against the dots.
    */
   showGhosts(atom: Atom, scene: THREE.Scene): GhostInfo[] {
     this.clearGhosts();
 
-    for (let i = 0; i < AC_ATOM_MAX_CONNECTIONS; i++) {
-      if (atom.connection[i] !== null) continue;
+    if (atom.done) return this.ghosts;
 
-      const slotBitfield = AC_ATOM_CONNECTION[i]; // 0x1, 0x2, 0x4, or 0x8
-      const transformIdx = slotBitfield - 1;
-      const worldMatrix = mat44Multiply(
-        this.tetra.transform[atom.language][transformIdx],
-        atom.matrix,
-      );
+    // ── Wireframe tetrahedron ────────────────────────────────────────────────
+    const corners = CORNER_INDICES.map((idx) => {
+      const wm = mat44Multiply(this.tetra.transform[atom.language][idx], atom.matrix);
+      return new THREE.Vector3(wm[12], wm[13], wm[14]);
+    });
 
-      const mesh = new THREE.Mesh(GHOST_GEOMETRY, GHOST_MATERIAL);
+    const positions = new Float32Array(TETRA_EDGES.length * 2 * 3);
+    let offset = 0;
+    for (const [a, b] of TETRA_EDGES) {
+      positions[offset++] = corners[a].x;
+      positions[offset++] = corners[a].y;
+      positions[offset++] = corners[a].z;
+      positions[offset++] = corners[b].x;
+      positions[offset++] = corners[b].y;
+      positions[offset++] = corners[b].z;
+    }
+    this.wireframeGeo = new THREE.BufferGeometry();
+    this.wireframeGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    this.wireframe = new THREE.LineSegments(this.wireframeGeo, WIREFRAME_MATERIAL);
+    scene.add(this.wireframe);
+
+    // ── Bond-position dots ───────────────────────────────────────────────────
+    const pool = getPoolOfPossibleConnections(atom.getConnectionBitField(), atom.element.valence);
+
+    for (let i = 0; i < 14; i++) {
+      if (!pool[i]) continue;
+
+      const candidateBitfield = i + 1; // 1..14
+      const bondOrder = AC_ATOM_COUNT_CONNECTIONS_OF_BITFIELD[candidateBitfield]; // 1, 2, or 3
+      const worldMatrix = mat44Multiply(this.tetra.transform[atom.language][i], atom.matrix);
+
+      const mesh = new THREE.Mesh(GHOST_GEOMETRY, GHOST_MATERIALS[bondOrder - 1]);
       mesh.position.set(worldMatrix[12], worldMatrix[13], worldMatrix[14]);
       scene.add(mesh);
 
-      this.ghosts.push({ mesh, atom, connectionBitfield: slotBitfield });
+      this.ghosts.push({ mesh, atom, connectionBitfield: candidateBitfield });
     }
 
     return this.ghosts;
@@ -58,6 +91,15 @@ export class GhostRenderer {
       g.mesh.removeFromParent();
     }
     this.ghosts = [];
+
+    if (this.wireframe) {
+      this.wireframe.removeFromParent();
+      this.wireframe = null;
+    }
+    if (this.wireframeGeo) {
+      this.wireframeGeo.dispose();
+      this.wireframeGeo = null;
+    }
   }
 
   getGhosts(): GhostInfo[] {
@@ -66,5 +108,9 @@ export class GhostRenderer {
 
   dispose(): void {
     this.clearGhosts();
+    GHOST_MATERIAL_1.dispose();
+    GHOST_MATERIAL_2.dispose();
+    GHOST_MATERIAL_3.dispose();
+    WIREFRAME_MATERIAL.dispose();
   }
 }
