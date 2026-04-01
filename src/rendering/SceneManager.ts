@@ -8,6 +8,7 @@ export class SceneManager {
   readonly controls: OrbitControls;
 
   private animationId = 0;
+  private onBeforeRenderCallback: (() => void) | null = null;
 
   constructor(container: HTMLElement) {
     // Scene
@@ -69,8 +70,61 @@ export class SceneManager {
     this.controls.update();
   }
 
+  // ─── AR integration ───────────────────────────────────────────────────────
+
+  /**
+   * Register a callback invoked at the start of every animation frame,
+   * before controls.update() and the render call.
+   * ArManager uses this to run marker detection in sync with rendering.
+   */
+  setOnBeforeRender(cb: (() => void) | null): void {
+    this.onBeforeRenderCallback = cb;
+  }
+
+  /**
+   * Use a video element as the scene background (AR camera feed).
+   * Pass the ArManager.video element here.
+   */
+  setVideoBackground(video: HTMLVideoElement): void {
+    this.scene.background = new THREE.VideoTexture(video);
+  }
+
+  /**
+   * Override the camera's projection matrix with the ARToolKit calibrated matrix.
+   * Patches updateProjectionMatrix() to a no-op so the resize handler and
+   * OrbitControls can't overwrite the AR calibration.
+   */
+  setArProjectionMatrix(matrix: Float64Array): void {
+    this.camera.projectionMatrix.fromArray(matrix);
+    this.camera.projectionMatrixInverse.copy(this.camera.projectionMatrix).invert();
+    // Prevent Three.js from recomputing the projection (no flag exists in r183 —
+    // we override the method instead).
+    this.camera.updateProjectionMatrix = () => { /* locked to AR calibration */ };
+  }
+
+  /**
+   * Switch between AR mode and desktop mode.
+   * AR mode: disables OrbitControls, resets camera to AR convention (origin, looking -Z).
+   * Desktop mode: re-enables OrbitControls, restores solid background and projection.
+   */
+  setArMode(enabled: boolean): void {
+    this.controls.enabled = !enabled;
+    if (enabled) {
+      this.camera.position.set(0, 0, 0);
+      this.camera.rotation.set(0, 0, 0);
+    } else {
+      this.scene.background = new THREE.Color(0x1a1a2e);
+      // Restore the original updateProjectionMatrix from the prototype
+      delete (this.camera as Partial<typeof this.camera>).updateProjectionMatrix;
+      this.camera.position.set(0, 0, 10);
+    }
+  }
+
+  // ─── Render loop ──────────────────────────────────────────────────────────
+
   private animate = (): void => {
     this.animationId = requestAnimationFrame(this.animate);
+    this.onBeforeRenderCallback?.();
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
   };

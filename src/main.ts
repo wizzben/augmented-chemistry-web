@@ -115,6 +115,70 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// ─── AR mode ──────────────────────────────────────────────────────────────
+const arBtn = document.getElementById('ar-btn') as HTMLButtonElement;
+
+arBtn?.addEventListener('click', async () => {
+  if (!sceneManager) return;
+  arBtn.disabled = true;
+  arBtn.textContent = 'Starting…';
+
+  try {
+    // Dynamic import keeps the AR library out of the desktop bundle
+    const [
+      { MarkerRegistry },
+      { MarkerState },
+      { ArManager },
+    ] = await Promise.all([
+      import('@/ar/MarkerRegistry'),
+      import('@/ar/MarkerState'),
+      import('@/ar/ArManager'),
+    ]);
+
+    const registry = new MarkerRegistry();
+    const markerState = new MarkerState();
+    const arManager = new ArManager(registry, markerState);
+
+    await arManager.init();
+
+    // Wire scene for AR
+    sceneManager.setVideoBackground(arManager.video);
+    const proj = arManager.getProjectionMatrix();
+    if (proj) sceneManager.setArProjectionMatrix(proj);
+    sceneManager.setArMode(true);
+
+    // ── Phase 4 verification: sphere tracks the platform marker ────────────
+    const verifyGeo = new THREE.SphereGeometry(40, 16, 8);
+    const verifyMat = new THREE.MeshPhongMaterial({ color: 0xff4444, opacity: 0.85, transparent: true });
+    const verifySphere = new THREE.Mesh(verifyGeo, verifyMat);
+    verifySphere.visible = false;
+    verifySphere.matrixAutoUpdate = false;
+    sceneManager.add(verifySphere);
+    // ──────────────────────────────────────────────────────────────────────
+
+    sceneManager.setOnBeforeRender(() => {
+      arManager.processFrame();
+
+      // Phase 4 verification: show sphere at platform marker position
+      const platformMatrix = markerState.getMatrix('platform');
+      if (platformMatrix) {
+        verifySphere.matrix.copy(platformMatrix);
+        verifySphere.visible = true;
+      } else {
+        verifySphere.visible = false;
+      }
+    });
+
+    arBtn.textContent = 'AR Active';
+    infoBar.textContent = 'AR mode — point camera at the platform marker';
+  } catch (err) {
+    console.error('AR init failed:', err);
+    arBtn.disabled = false;
+    arBtn.textContent = 'Start AR';
+    infoBar.textContent = 'AR unavailable — check camera permissions and HTTPS';
+  }
+});
+
 // ─── Library panel (view-only) ────────────────────────────────────────────
 const libraryContainer = document.getElementById('library-list')!;
 const sortedEntries = libraryEntries.slice().sort((a, b) => {
