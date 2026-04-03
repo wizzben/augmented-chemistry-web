@@ -118,8 +118,29 @@ document.addEventListener('keydown', (e) => {
 // ─── AR mode ──────────────────────────────────────────────────────────────
 const arBtn = document.getElementById('ar-btn') as HTMLButtonElement;
 
+// Track active AR session so the button can toggle it off
+let activeArManager: { dispose(): void } | null = null;
+let activeVerifySphere: THREE.Mesh | null = null;
+
 arBtn?.addEventListener('click', async () => {
   if (!sceneManager) return;
+
+  // ── Toggle off ────────────────────────────────────────────────────────
+  if (activeArManager) {
+    sceneManager.setOnBeforeRender(null);
+    if (activeVerifySphere) {
+      sceneManager.remove(activeVerifySphere);
+      activeVerifySphere = null;
+    }
+    activeArManager.dispose();
+    activeArManager = null;
+    sceneManager.setArMode(false);
+    arBtn.textContent = 'Start AR';
+    infoBar.textContent = '';
+    return;
+  }
+
+  // ── Toggle on ─────────────────────────────────────────────────────────
   arBtn.disabled = true;
   arBtn.textContent = 'Starting…';
 
@@ -145,31 +166,35 @@ arBtn?.addEventListener('click', async () => {
     sceneManager.setVideoBackground(arManager.video);
     const proj = arManager.getProjectionMatrix();
     if (proj) sceneManager.setArProjectionMatrix(proj);
-    sceneManager.setArMode(true);
+    const vw = arManager.video.videoWidth || 640;
+    const vh = arManager.video.videoHeight || 480;
+    sceneManager.setArMode(true, vw / vh);
 
     // ── Phase 4 verification: sphere tracks the platform marker ────────────
-    const verifyGeo = new THREE.SphereGeometry(40, 16, 8);
+    const verifyGeo = new THREE.SphereGeometry(20, 16, 8);
     const verifyMat = new THREE.MeshPhongMaterial({ color: 0xff4444, opacity: 0.85, transparent: true });
     const verifySphere = new THREE.Mesh(verifyGeo, verifyMat);
     verifySphere.visible = false;
     verifySphere.matrixAutoUpdate = false;
     sceneManager.add(verifySphere);
+    activeVerifySphere = verifySphere;
     // ──────────────────────────────────────────────────────────────────────
 
     sceneManager.setOnBeforeRender(() => {
       arManager.processFrame();
-
-      // Phase 4 verification: show sphere at platform marker position
       const platformMatrix = markerState.getMatrix('platform');
       if (platformMatrix) {
         verifySphere.matrix.copy(platformMatrix);
+        verifySphere.matrixWorldNeedsUpdate = true;
         verifySphere.visible = true;
       } else {
         verifySphere.visible = false;
       }
     });
 
-    arBtn.textContent = 'AR Active';
+    activeArManager = arManager;
+    arBtn.disabled = false;
+    arBtn.textContent = 'Stop AR';
     infoBar.textContent = 'AR mode — point camera at the platform marker';
   } catch (err) {
     console.error('AR init failed:', err);

@@ -120,6 +120,7 @@ export class ArManager {
     if (!this.controller) return;
 
     this.state.beginFrame();
+
     this.controller.detectMarker(this.video);
 
     const markerNum = this.controller.getMarkerNum();

@@ -9,6 +9,7 @@ export class SceneManager {
 
   private animationId = 0;
   private onBeforeRenderCallback: (() => void) | null = null;
+  private arVideoAspect: number | null = null;
 
   constructor(container: HTMLElement) {
     // Scene
@@ -104,19 +105,27 @@ export class SceneManager {
 
   /**
    * Switch between AR mode and desktop mode.
-   * AR mode: disables OrbitControls, resets camera to AR convention (origin, looking -Z).
+   * AR mode: disables OrbitControls, resets camera to AR convention (origin, looking -Z),
+   *   locks resize to preserve the video aspect ratio.
    * Desktop mode: re-enables OrbitControls, restores solid background and projection.
+   *
+   * @param videoAspect - width/height of the webcam feed; passed in AR mode to
+   *   keep the canvas (and therefore the video background) undistorted on resize.
    */
-  setArMode(enabled: boolean): void {
+  setArMode(enabled: boolean, videoAspect?: number): void {
     this.controls.enabled = !enabled;
     if (enabled) {
       this.camera.position.set(0, 0, 0);
       this.camera.rotation.set(0, 0, 0);
+      this.arVideoAspect = videoAspect ?? null;
+      if (videoAspect !== undefined) this.onResize();
     } else {
       this.scene.background = new THREE.Color(0x1a1a2e);
       // Restore the original updateProjectionMatrix from the prototype
       delete (this.camera as Partial<typeof this.camera>).updateProjectionMatrix;
       this.camera.position.set(0, 0, 10);
+      this.arVideoAspect = null;
+      this.onResize();
     }
   }
 
@@ -125,7 +134,10 @@ export class SceneManager {
   private animate = (): void => {
     this.animationId = requestAnimationFrame(this.animate);
     this.onBeforeRenderCallback?.();
-    this.controls.update();
+    // Skip OrbitControls update in AR mode — controls are disabled and calling
+    // update() would push the camera away from origin (minDistance clamping),
+    // breaking the AR assumption that the camera sits at (0,0,0).
+    if (this.controls.enabled) this.controls.update();
     this.renderer.render(this.scene, this.camera);
   };
 
@@ -133,7 +145,11 @@ export class SceneManager {
     const parent = this.renderer.domElement.parentElement;
     if (!parent) return;
     const w = parent.clientWidth;
-    const h = parent.clientHeight;
+    // In AR mode, fix the canvas height to preserve the webcam aspect ratio so
+    // the VideoTexture background renders undistorted.
+    const h = this.arVideoAspect !== null
+      ? Math.round(w / this.arVideoAspect)
+      : parent.clientHeight;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
