@@ -245,6 +245,8 @@ markerlessBtn?.addEventListener('click', async () => {
 
   // ── Toggle off ──────────────────────────────────────────────────────────
   if (markerlessModeActive) {
+    markerlessModeActive = false; // prevent library callback from branching wrong path
+
     sceneManager.setOnBeforeRender(null);
     activeHandObjectManager?.dispose();
     activeHandObjectManager = null;
@@ -254,18 +256,24 @@ markerlessBtn?.addEventListener('click', async () => {
     activeGhostRenderer = null;
     cachedHandOverlay?.clear();
     cachedHandOverlay?.hide();
-    cachedAtomGrabList?.hide();
     sceneManager.setMarkerlessMode(false);
 
     // Restore desktop controls
     desktopControls = new DesktopControls(sceneManager, builder, infoBar);
 
+    // Fade out atom grab list, then fully hide after transition
+    atomGrabListEl.style.opacity = '0';
+    const grabListRef = cachedAtomGrabList;
+    setTimeout(() => { grabListRef?.hide(); }, 220);
+
+    // Fade in palette grid
     paletteGrid.style.display = '';
+    requestAnimationFrame(() => { paletteGrid.style.opacity = '1'; });
+
     swapHandsBtn.style.display = 'none';
     arBtn.disabled = false;
     markerlessBtn.textContent = 'Markerless';
     infoBar.textContent = 'Select an element and click the canvas to start building.';
-    markerlessModeActive = false;
     swapHandsActive      = false;
     swapHandsBtn.textContent = 'L=Grab, R=Rotate';
     return;
@@ -275,6 +283,9 @@ markerlessBtn?.addEventListener('click', async () => {
   markerlessBtn.disabled = true;
   markerlessBtn.textContent = 'Starting…';
   arBtn.disabled = true;
+
+  // Fade palette out immediately — gives visual feedback during camera init (~3 s)
+  paletteGrid.style.opacity = '0';
 
   try {
     // Dynamic imports keep these modules out of the desktop bundle
@@ -318,9 +329,14 @@ markerlessBtn?.addEventListener('click', async () => {
       ghostRenderer,
     );
 
-    // Show markerless UI
+    // Complete palette hide (opacity already 0 from before the await)
     paletteGrid.style.display = 'none';
+
+    // Fade in atom grab list: set opacity 0, show (display:flex), then rAF → opacity 1
+    atomGrabListEl.style.opacity = '0';
     cachedAtomGrabList.show();
+    requestAnimationFrame(() => { atomGrabListEl.style.opacity = '1'; });
+
     cachedHandOverlay.syncSize();
     cachedHandOverlay.show();
     swapHandsBtn.style.display = '';
@@ -350,8 +366,10 @@ markerlessBtn?.addEventListener('click', async () => {
   } catch (err) {
     console.error('Markerless init failed:', err);
     sceneManager.setMarkerlessMode(false);
-    desktopControls = new DesktopControls(sceneManager, builder, infoBar);
+    if (!desktopControls) desktopControls = new DesktopControls(sceneManager, builder, infoBar);
+    // Restore palette
     paletteGrid.style.display = '';
+    requestAnimationFrame(() => { paletteGrid.style.opacity = '1'; });
     swapHandsBtn.style.display = 'none';
     arBtn.disabled = false;
     markerlessBtn.disabled = false;
