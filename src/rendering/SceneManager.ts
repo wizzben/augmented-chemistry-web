@@ -129,6 +129,27 @@ export class SceneManager {
     }
   }
 
+  /**
+   * Switch between markerless (hand-tracking) mode and desktop mode.
+   *
+   * Markerless mode: disables OrbitControls so hand gestures control rotation
+   * instead of the mouse. Background and camera position remain unchanged
+   * (solid colour, camera at (0,0,10)) — this is the key difference from AR mode.
+   *
+   * Desktop mode: re-enables OrbitControls, resets camera/target, triggers resize.
+   */
+  setMarkerlessMode(enabled: boolean): void {
+    this.controls.enabled = !enabled;
+    if (!enabled) {
+      this.camera.position.set(0, 0, 10);
+      this.camera.lookAt(0, 0, 0);
+      this.controls.target.set(0, 0, 0);
+      this.onResize();
+    }
+    // When enabling, camera stays at its current position and the solid background
+    // is preserved — no changes needed beyond disabling controls.
+  }
+
   // ─── Render loop ──────────────────────────────────────────────────────────
 
   private animate = (): void => {

@@ -125,7 +125,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ─── AR mode ──────────────────────────────────────────────────────────────
-const arBtn = document.getElementById('ar-btn') as HTMLButtonElement;
+const arBtn           = document.getElementById('ar-btn')           as HTMLButtonElement;
+const markerlessBtn   = document.getElementById('markerless-btn')   as HTMLButtonElement;
+const swapHandsBtn    = document.getElementById('swap-hands-btn')   as HTMLButtonElement;
+const paletteGrid     = document.getElementById('element-grid')!;
+const atomGrabListEl  = document.getElementById('atom-grab-list')!;
+const handOverlayCanvas = document.getElementById('hand-overlay')   as HTMLCanvasElement;
 
 // Track active AR session so the button can toggle it off
 let activeArManager: { dispose(): void } | null = null;
@@ -143,6 +148,7 @@ arBtn?.addEventListener('click', async () => {
     activeArManager = null;
     sceneManager.setArMode(false);
     arBtn.textContent = 'Start AR';
+    markerlessBtn.disabled = false;
     infoBar.textContent = '';
     return;
   }
@@ -150,6 +156,7 @@ arBtn?.addEventListener('click', async () => {
   // ── Toggle on ─────────────────────────────────────────────────────────
   arBtn.disabled = true;
   arBtn.textContent = 'Starting…';
+  markerlessBtn.disabled = true;
 
   try {
     // Dynamic import keeps the AR library out of the desktop bundle
@@ -197,11 +204,13 @@ arBtn?.addEventListener('click', async () => {
     activeArManager = arManager;
     arBtn.disabled = false;
     arBtn.textContent = 'Stop AR';
+    // markerlessBtn stays disabled while AR is active
     infoBar.textContent = 'AR mode — tap canvas to add atoms';
   } catch (err) {
     console.error('AR init failed:', err);
     arBtn.disabled = false;
     arBtn.textContent = 'Start AR';
+    markerlessBtn.disabled = false;
     infoBar.textContent = 'AR unavailable — check camera permissions and HTTPS';
   }
 });
@@ -212,6 +221,149 @@ container.addEventListener('click', () => {
   if (activeArObjectManager) {
     activeArObjectManager.triggerLink();
   }
+});
+
+// ─── Markerless mode ──────────────────────────────────────────────────────
+// Cached DOM objects (created once on first activation, reused thereafter).
+let cachedAtomGrabList: import('@/hand/AtomGrabList').AtomGrabList | null = null;
+let cachedHandOverlay:  import('@/hand/HandOverlay').HandOverlay   | null = null;
+
+// Active-session objects (null when markerless is off).
+let activeHandManager: { processFrame(): import('@/hand/HandTracker').HandFrame | null; dispose(): void } | null = null;
+let activeHandObjectManager: {
+  update(f: import('@/hand/HandTracker').HandFrame): void;
+  dispose(): void;
+  grabberState: import('@/hand/HandObjectManager').GrabberState;
+  setSwapHands(v: boolean): void;
+} | null = null;
+let activeGhostRenderer: { dispose(): void } | null = null;
+let markerlessModeActive = false;
+let swapHandsActive      = false;
+
+markerlessBtn?.addEventListener('click', async () => {
+  if (!sceneManager) return;
+
+  // ── Toggle off ──────────────────────────────────────────────────────────
+  if (markerlessModeActive) {
+    sceneManager.setOnBeforeRender(null);
+    activeHandObjectManager?.dispose();
+    activeHandObjectManager = null;
+    activeHandManager?.dispose();
+    activeHandManager = null;
+    activeGhostRenderer?.dispose();
+    activeGhostRenderer = null;
+    cachedHandOverlay?.clear();
+    cachedHandOverlay?.hide();
+    cachedAtomGrabList?.hide();
+    sceneManager.setMarkerlessMode(false);
+
+    // Restore desktop controls
+    desktopControls = new DesktopControls(sceneManager, builder, infoBar);
+
+    paletteGrid.style.display = '';
+    swapHandsBtn.style.display = 'none';
+    arBtn.disabled = false;
+    markerlessBtn.textContent = 'Markerless';
+    infoBar.textContent = 'Select an element and click the canvas to start building.';
+    markerlessModeActive = false;
+    swapHandsActive      = false;
+    swapHandsBtn.textContent = 'L=Grab, R=Rotate';
+    return;
+  }
+
+  // ── Toggle on ───────────────────────────────────────────────────────────
+  markerlessBtn.disabled = true;
+  markerlessBtn.textContent = 'Starting…';
+  arBtn.disabled = true;
+
+  try {
+    // Dynamic imports keep these modules out of the desktop bundle
+    const [
+      { HandManager },
+      { HandObjectManager },
+      { AtomGrabList },
+      { HandOverlay },
+      { GhostRenderer },
+      { MaterialLibrary },
+    ] = await Promise.all([
+      import('@/hand/HandManager'),
+      import('@/hand/HandObjectManager'),
+      import('@/hand/AtomGrabList'),
+      import('@/hand/HandOverlay'),
+      import('@/rendering/GhostRenderer'),
+      import('@/rendering/MaterialLibrary'),
+    ]);
+
+    // Dispose desktop controls — hand gestures control rotation instead
+    desktopControls?.dispose();
+    desktopControls = null;
+
+    const handManager = new HandManager();
+    await handManager.init();
+
+    sceneManager.setMarkerlessMode(true);
+
+    // Build (or reuse) the persistent DOM overlay objects
+    if (!cachedAtomGrabList) cachedAtomGrabList = new AtomGrabList(atomGrabListEl);
+    if (!cachedHandOverlay)  cachedHandOverlay  = new HandOverlay(handOverlayCanvas);
+
+    const ghostRenderer   = new GhostRenderer();
+    const materialLibrary = new MaterialLibrary();
+
+    const handObjectManager = new HandObjectManager(
+      builder,
+      sceneManager,
+      materialLibrary,
+      cachedAtomGrabList,
+      ghostRenderer,
+    );
+
+    // Show markerless UI
+    paletteGrid.style.display = 'none';
+    cachedAtomGrabList.show();
+    cachedHandOverlay.syncSize();
+    cachedHandOverlay.show();
+    swapHandsBtn.style.display = '';
+
+    markerlessBtn.disabled = false;
+    markerlessBtn.textContent = 'Stop Markerless';
+    infoBar.textContent = 'Markerless — left hand grabs atoms, right hand rotates';
+
+    sceneManager.setOnBeforeRender(() => {
+      const frame = handManager.processFrame();
+      if (!frame) {
+        cachedHandOverlay?.clear();
+        return;
+      }
+      handObjectManager.update(frame);
+      const el = builder.getCurrentElement();
+      cachedHandOverlay!.update(frame, handObjectManager.grabberState, {
+        grabbedColor: el?.color,
+        swapHands: swapHandsActive,
+      });
+    });
+
+    activeHandManager       = handManager;
+    activeHandObjectManager = handObjectManager;
+    activeGhostRenderer     = ghostRenderer;
+    markerlessModeActive    = true;
+  } catch (err) {
+    console.error('Markerless init failed:', err);
+    sceneManager.setMarkerlessMode(false);
+    desktopControls = new DesktopControls(sceneManager, builder, infoBar);
+    paletteGrid.style.display = '';
+    swapHandsBtn.style.display = 'none';
+    arBtn.disabled = false;
+    markerlessBtn.disabled = false;
+    markerlessBtn.textContent = 'Markerless';
+    infoBar.textContent = 'Markerless unavailable — check camera permissions and HTTPS';
+  }
+});
+
+swapHandsBtn?.addEventListener('click', () => {
+  swapHandsActive = !swapHandsActive;
+  activeHandObjectManager?.setSwapHands(swapHandsActive);
+  swapHandsBtn.textContent = swapHandsActive ? 'R=Grab, L=Rotate' : 'L=Grab, R=Rotate';
 });
 
 // ─── Library panel (view-only) ────────────────────────────────────────────
