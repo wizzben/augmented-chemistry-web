@@ -64,6 +64,24 @@
       overflow: hidden;
     }
     #app { width: 100%; height: 100%; }
+
+    /* ─── Atom grab list (markerless mode overlay) ─── */
+    #atom-grab-list {
+      display: none; /* shown only in markerless mode */
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      bottom: 8px;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      overflow-y: auto;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #atom-grab-list::-webkit-scrollbar { width: 0; }
+
     #info-bar {
       position: absolute;
       bottom: 10px;
@@ -127,6 +145,7 @@
   <!-- Center: 3D canvas -->
   <div id="canvas-panel">
     <div id="app"></div>
+    <div id="atom-grab-list"></div>
     <div id="info-bar">Select an element and click the canvas to start building.</div>
   </div>
 
