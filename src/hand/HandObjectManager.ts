@@ -29,8 +29,16 @@ import { computeMoleculeGeometry } from '@/rendering/MoleculeGeometry';
 // ── Tuning constants ─────────────────────────────────────────────────────────
 /** Fraction (0–1) of the palm rotation delta applied each frame. Lower = smoother. */
 const ROTATION_DAMPING = 0.3;
+/**
+ * cos(half-angle) dead-zone for palm rotation.
+ * delta.w ≥ this → rotation is smaller than ~1.5° → skip to prevent jitter.
+ * (w = cos(θ/2); 0.9997 ≈ θ = 2·acos(0.9997) ≈ 1.4°)
+ */
+const ROTATION_DEAD_ZONE = 0.9997;
 /** Sensitivity of closed-fist vertical movement to scale change per normalized unit. */
 const ZOOM_SENSITIVITY = 2.5;
+/** Low-pass weight applied to the raw fist Y each frame (0=frozen, 1=no smoothing). */
+const ZOOM_SMOOTH = 0.35;
 const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 5.0;
 /** Screen-space pixel radius within which the grabber finger "approaches" an atom. */
@@ -75,6 +83,12 @@ export class HandObjectManager {
   // ── Zoom tracking ─────────────────────────────────────────────────────────
   private _pivotScale = 1.0;
   private _prevFistY: number | null = null;
+  private _smoothedFistY: number | null = null;
+
+  // ── Atom approach highlight ────────────────────────────────────────────────
+  private readonly _materialLibrary: MaterialLibrary;
+  private _highlightedMesh: THREE.Mesh | null = null;
+  private _originalMaterial: THREE.Material | null = null;
 
   // ── Grabbed element sphere (follows fingertip while element is held) ───────
   private readonly _grabbedSphere: THREE.Mesh;
@@ -94,17 +108,17 @@ export class HandObjectManager {
   constructor(
     builder: MoleculeBuilder,
     sceneManager: SceneManager,
-    /** Unused in this substep but present for symmetry with ArObjectManager. */
-    _materialLibrary: MaterialLibrary,
+    materialLibrary: MaterialLibrary,
     atomGrabList: AtomGrabList,
     ghostRenderer: GhostRenderer,
   ) {
-    this._builder      = builder;
-    this._scene        = sceneManager.scene;
-    this._camera       = sceneManager.camera;
-    this._canvas       = sceneManager.renderer.domElement;
-    this._atomGrabList = atomGrabList;
-    this._ghostRenderer = ghostRenderer;
+    this._builder         = builder;
+    this._scene           = sceneManager.scene;
+    this._camera          = sceneManager.camera;
+    this._canvas          = sceneManager.renderer.domElement;
+    this._atomGrabList    = atomGrabList;
+    this._ghostRenderer   = ghostRenderer;
+    this._materialLibrary = materialLibrary;
 
     // ── Pivot group ────────────────────────────────────────────────────────
     this._pivotGroup = new THREE.Group();
@@ -129,6 +143,7 @@ export class HandObjectManager {
     builder.onChanged = (geo: MoleculeGeometryData) => {
       // Clear ghosts before re-rendering (ghost meshes are pivotGroup children)
       this._ghostRenderer.clearGhosts();
+      this._setAtomHighlight(null); // mesh is about to be replaced; clear before rebuild
       this._approachingAtom = null;
       if (this.grabberState === 'APPROACHING' || this.grabberState === 'DOCKING') {
         this.grabberState = 'GRABBED';
@@ -195,7 +210,8 @@ export class HandObjectManager {
       this._detectorRotation.update(rotLm, rotWl, elapsedMs);
     } else {
       this._detectorRotation.reset();
-      this._prevFistY = null;
+      this._prevFistY     = null;
+      this._smoothedFistY = null;
     }
 
     if (grabLm && grabWl) {
@@ -218,6 +234,9 @@ export class HandObjectManager {
   dispose(): void {
     // Restore original builder.onChanged
     this._builder.onChanged = this._savedOnChanged;
+
+    // Clear approach highlight before meshes are destroyed
+    this._setAtomHighlight(null);
 
     // Clear markerless rendering and re-render under desktop molecule renderer
     this._ghostRenderer.clearGhosts();
@@ -248,27 +267,37 @@ export class HandObjectManager {
     const det = this._detectorRotation;
 
     if (det.isOpen) {
-      this._prevFistY = null;
+      this._prevFistY    = null;
+      this._smoothedFistY = null;
 
       // Apply a fraction of the rotation delta (damping reduces jitter).
-      // Skip near-identity deltas to avoid drift when hand is held still.
+      // Skip deltas smaller than ROTATION_DEAD_ZONE to prevent drift when
+      // the hand is held still.
       const delta = det.rotationDelta;
-      if (delta.w < 0.9999) {
+      if (delta.w < ROTATION_DEAD_ZONE) {
         // Slerp: identity → delta, factor = ROTATION_DAMPING
         this._dampedQ.identity().slerp(delta, ROTATION_DAMPING);
         this._pivotGroup.quaternion.multiply(this._dampedQ).normalize();
       }
     } else {
-      // Closed fist: vertical movement → scale
-      const tipY = det.indexTip.y;
-      if (tipY > 0 && this._prevFistY !== null) {
-        // Moving fist up (y decreasing) → zoom in; down → zoom out
-        const yDelta = this._prevFistY - tipY;
-        const multiplier = 1 + yDelta * ZOOM_SENSITIVITY;
-        this._pivotScale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, this._pivotScale * multiplier));
-        this._pivotGroup.scale.setScalar(this._pivotScale);
+      // Closed fist: vertical movement → scale.
+      // Low-pass filter the raw fist Y to reduce per-frame jitter before
+      // computing the delta.
+      const rawY = det.indexTip.y;
+      if (rawY > 0) {
+        this._smoothedFistY = this._smoothedFistY === null
+          ? rawY
+          : this._smoothedFistY + (rawY - this._smoothedFistY) * ZOOM_SMOOTH;
+
+        if (this._prevFistY !== null) {
+          // Moving fist up (y decreasing) → zoom in; down → zoom out
+          const yDelta = this._prevFistY - this._smoothedFistY;
+          const multiplier = 1 + yDelta * ZOOM_SENSITIVITY;
+          this._pivotScale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, this._pivotScale * multiplier));
+          this._pivotGroup.scale.setScalar(this._pivotScale);
+        }
+        this._prevFistY = this._smoothedFistY;
       }
-      this._prevFistY = tipY;
     }
   }
 
@@ -339,6 +368,7 @@ export class HandObjectManager {
 
     // Empty molecule: pinch anywhere to place the first atom
     if (mol.atoms.length === 0) {
+      this._setAtomHighlight(null);
       if (det.pinchTriggered) {
         this._builder.addFirstAtom();
         // builder.onChanged fires: state stays GRABBED, mesh map is rebuilt
@@ -347,6 +377,7 @@ export class HandObjectManager {
     }
 
     // Find the closest unsaturated atom mesh within threshold
+    let nearestMesh: THREE.Mesh | null = null;
     let nearestAtom: Atom | null = null;
     let nearestDist = Infinity;
 
@@ -355,15 +386,20 @@ export class HandObjectManager {
       if (!atom || atom.done) continue;
 
       const d = this._meshScreenDist(mesh, tipScreenX, tipScreenY);
-      if (d < nearestDist) { nearestDist = d; nearestAtom = atom; }
+      if (d < nearestDist) { nearestDist = d; nearestAtom = atom; nearestMesh = mesh; }
     }
 
     if (nearestAtom !== null && nearestDist < ATOM_APPROACH_PX) {
+      // Highlight the atom the grabber finger is approaching
+      this._setAtomHighlight(nearestMesh);
       this._approachingAtom = nearestAtom;
       // Ghosts are placed in pivotGroup local space via cast (runtime-safe since
       // THREE.Group.add === THREE.Object3D.add, which THREE.Scene also uses).
       this._ghostRenderer.showGhosts(nearestAtom, this._pivotGroup as unknown as THREE.Scene);
       this.grabberState = 'APPROACHING';
+    } else {
+      // No atom nearby — clear any lingering highlight
+      this._setAtomHighlight(null);
     }
   }
 
@@ -379,6 +415,7 @@ export class HandObjectManager {
         const d = this._meshScreenDist(approachMesh, tipScreenX, tipScreenY);
         if (d > ATOM_APPROACH_PX * HYSTERESIS) {
           this._ghostRenderer.clearGhosts();
+          this._setAtomHighlight(null);
           this._approachingAtom = null;
           this.grabberState = 'GRABBED';
           return;
@@ -449,6 +486,33 @@ export class HandObjectManager {
       if (a === atom) return mesh;
     }
     return null;
+  }
+
+  /**
+   * Apply or clear the emissive highlight on an atom mesh.
+   * - Restores the previous mesh's original material before switching.
+   * - Pass `null` to clear any current highlight.
+   * - Uses `_materialLibrary.getHighlightMaterial()` so the highlight
+   *   material is owned and disposed by the library, not here.
+   */
+  private _setAtomHighlight(mesh: THREE.Mesh | null): void {
+    if (mesh === this._highlightedMesh) return; // no-op if nothing changed
+
+    // Restore the previous highlighted mesh to its original material
+    if (this._highlightedMesh !== null && this._originalMaterial !== null) {
+      this._highlightedMesh.material = this._originalMaterial;
+      this._originalMaterial  = null;
+    }
+    this._highlightedMesh = mesh;
+
+    // Apply highlight to the new mesh
+    if (mesh !== null) {
+      const atom = this._atomMeshToAtom.get(mesh);
+      if (atom) {
+        this._originalMaterial = mesh.material as THREE.Material;
+        mesh.material = this._materialLibrary.getHighlightMaterial(atom.element);
+      }
+    }
   }
 
   /** Position the grabbed-element sphere at the fingertip (unprojected to z=0 plane). */
