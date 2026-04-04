@@ -15,6 +15,14 @@ import * as THREE from 'three';
 // ─── Pre-load library molecules for recognition ───────────────────────────
 const libraryEntries = moleculesData as MoleculeEntry[];
 
+/**
+ * Benzene ring starter — 6 unsaturated carbons, slot a free on every carbon.
+ * Ported from acmolstarters.dat (the C app's separate preset file).
+ */
+const BENZENE_STARTER_FORMAT =
+  'C 1,C 1,C 1,C 1,C 1,C 1;' +
+  '0c1,0b5,0d5,1c0,1b2,1d2,2c3,2b1,2d1,3c2,3b4,3d4,4c5,4b3,4d3,5c4,5d0,5b0';
+
 const libraryMolecules: Molecule[] = libraryEntries.map((entry) => {
   const name = entry.names.en ?? entry.names.de ?? 'Unknown';
   return deserializeMolecule(name, entry.format, {
@@ -177,6 +185,7 @@ arBtn?.addEventListener('click', async () => {
       builder,
       sceneManager.scene,
       materialLibrary,
+      () => { builder.loadPreset(BENZENE_STARTER_FORMAT); },
     );
     activeArObjectManager = arObjectManager;
 

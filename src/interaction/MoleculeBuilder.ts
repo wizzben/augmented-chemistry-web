@@ -3,6 +3,7 @@ import type { Element } from '@/chemistry/Element';
 import type { Molecule } from '@/chemistry/Molecule';
 import { moleculeCompareStructure } from '@/chemistry/Comparison';
 import { computeMoleculeGeometry, type MoleculeGeometryData } from '@/rendering/MoleculeGeometry';
+import { deserializeMolecule } from '@/chemistry/Serializer';
 
 export class MoleculeBuilder {
   private molecule: Molecule;
@@ -65,6 +66,35 @@ export class MoleculeBuilder {
     if (this.atomHistory.length === 0) return;
     const last = this.atomHistory.pop()!;
     this.molecule.removeAtom(last);
+    this._structureDidChange();
+  }
+
+  /**
+   * Replace the current molecule with a pre-built preset.
+   * Port of ac_main.c:836 — moleculeClone(AC_MOLECULE_BENZENE).
+   */
+  loadPreset(formatString: string): void {
+    // Clear current atoms
+    while (this.molecule.atoms.length > 0) {
+      this.molecule.removeAtom(this.molecule.atoms[this.molecule.atoms.length - 1]);
+    }
+    this.atomHistory = [];
+
+    // Deserialize into a temporary molecule, then copy into this.molecule in place
+    const temp = deserializeMolecule('preset', formatString);
+    const atomMap = new Map<Atom, Atom>();
+    for (const src of temp.atoms) {
+      const dst = this.molecule.addAtom(src.element);
+      dst.language = src.language;
+      atomMap.set(src, dst);
+    }
+    for (const src of temp.atoms) {
+      const dst = atomMap.get(src)!;
+      for (let i = 0; i < 4; i++) {
+        if (src.connection[i]) dst.connection[i] = atomMap.get(src.connection[i])!;
+      }
+    }
+
     this._structureDidChange();
   }
 
