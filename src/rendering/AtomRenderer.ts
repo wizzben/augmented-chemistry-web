@@ -24,6 +24,7 @@ export class AtomRenderer {
       placement.position[2],
     );
     mesh.userData.atom = placement.atom;
+    mesh.renderOrder = 1; // draw atoms after bonds
     return mesh;
   }
 

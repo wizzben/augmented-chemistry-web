@@ -3,6 +3,7 @@ import { deserializeMolecule } from '@/chemistry/Serializer';
 import { Molecule } from '@/chemistry/Molecule';
 import { SceneManager } from '@/rendering/SceneManager';
 import { MoleculeRenderer } from '@/rendering/MoleculeRenderer';
+import { MaterialLibrary } from '@/rendering/MaterialLibrary';
 import { MoleculeBuilder } from '@/interaction/MoleculeBuilder';
 import { DesktopControls } from '@/interaction/DesktopControls';
 import { ElementPalette } from '@/ui/ElementPalette';
@@ -120,7 +121,7 @@ const arBtn = document.getElementById('ar-btn') as HTMLButtonElement;
 
 // Track active AR session so the button can toggle it off
 let activeArManager: { dispose(): void } | null = null;
-let activeVerifySphere: THREE.Mesh | null = null;
+let activeArObjectManager: { update(): void; dispose(): void; triggerLink(): void } | null = null;
 
 arBtn?.addEventListener('click', async () => {
   if (!sceneManager) return;
@@ -128,10 +129,8 @@ arBtn?.addEventListener('click', async () => {
   // ── Toggle off ────────────────────────────────────────────────────────
   if (activeArManager) {
     sceneManager.setOnBeforeRender(null);
-    if (activeVerifySphere) {
-      sceneManager.remove(activeVerifySphere);
-      activeVerifySphere = null;
-    }
+    activeArObjectManager?.dispose();
+    activeArObjectManager = null;
     activeArManager.dispose();
     activeArManager = null;
     sceneManager.setArMode(false);
@@ -150,10 +149,12 @@ arBtn?.addEventListener('click', async () => {
       { MarkerRegistry },
       { MarkerState },
       { ArManager },
+      { ArObjectManager },
     ] = await Promise.all([
       import('@/ar/MarkerRegistry'),
       import('@/ar/MarkerState'),
       import('@/ar/ArManager'),
+      import('@/objects/ArObjectManager'),
     ]);
 
     const registry = new MarkerRegistry();
@@ -170,37 +171,37 @@ arBtn?.addEventListener('click', async () => {
     const vh = arManager.video.videoHeight || 480;
     sceneManager.setArMode(true, vw / vh);
 
-    // ── Phase 4 verification: sphere tracks the platform marker ────────────
-    const verifyGeo = new THREE.SphereGeometry(20, 16, 8);
-    const verifyMat = new THREE.MeshPhongMaterial({ color: 0xff4444, opacity: 0.85, transparent: true });
-    const verifySphere = new THREE.Mesh(verifyGeo, verifyMat);
-    verifySphere.visible = false;
-    verifySphere.matrixAutoUpdate = false;
-    sceneManager.add(verifySphere);
-    activeVerifySphere = verifySphere;
-    // ──────────────────────────────────────────────────────────────────────
+    const materialLibrary = new MaterialLibrary();
+    const arObjectManager = new ArObjectManager(
+      markerState,
+      builder,
+      sceneManager.scene,
+      materialLibrary,
+    );
+    activeArObjectManager = arObjectManager;
 
     sceneManager.setOnBeforeRender(() => {
       arManager.processFrame();
-      const platformMatrix = markerState.getMatrix('platform');
-      if (platformMatrix) {
-        verifySphere.matrix.copy(platformMatrix);
-        verifySphere.matrixWorldNeedsUpdate = true;
-        verifySphere.visible = true;
-      } else {
-        verifySphere.visible = false;
-      }
+      arObjectManager.update();
     });
 
     activeArManager = arManager;
     arBtn.disabled = false;
     arBtn.textContent = 'Stop AR';
-    infoBar.textContent = 'AR mode — point camera at the platform marker';
+    infoBar.textContent = 'AR mode — tap canvas to add atoms';
   } catch (err) {
     console.error('AR init failed:', err);
     arBtn.disabled = false;
     arBtn.textContent = 'Start AR';
     infoBar.textContent = 'AR unavailable — check camera permissions and HTTPS';
+  }
+});
+
+// ─── AR tap-to-bond ───────────────────────────────────────────────────────
+// Canvas tap calls platform.triggerLink() when AR mode is active.
+container.addEventListener('click', () => {
+  if (activeArObjectManager) {
+    activeArObjectManager.triggerLink();
   }
 });
 

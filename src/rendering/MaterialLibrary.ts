@@ -17,10 +17,15 @@ export class MaterialLibrary {
     }
 
     // Bond material: gray with high shininess (aco_platform.c:1676-1678)
+    // polygonOffset pushes bonds slightly behind atoms in the depth buffer,
+    // eliminating z-fighting where the cylinder intersects the sphere.
     this.bondMat = new THREE.MeshPhongMaterial({
       color: new THREE.Color(0.7, 0.7, 0.7),
       specular: new THREE.Color(1.0, 1.0, 1.0),
       shininess: 100,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
     });
   }
 
