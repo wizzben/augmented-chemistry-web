@@ -375,16 +375,28 @@ const sortedEntries = libraryEntries.slice().sort((a, b) => {
 });
 
 new MoleculeLibrary(libraryContainer, sortedEntries, (entry) => {
+  const name = entry.names.en ?? entry.names.de ?? 'Unknown';
+
+  // ── Markerless mode: load preset into builder for editing ─────────────────
+  if (markerlessModeActive) {
+    builder.loadPreset(entry.format);
+    // builder.onChanged is intercepted by HandObjectManager — it re-renders
+    // the molecule under the pivot group automatically.
+    infoBar.textContent = `${name}${entry.formula ? ' \u2014 ' + entry.formula : ''} \u2014 ${builder.getMolecule().atoms.length} atoms`;
+    recognitionBar.textContent = name;
+    recognitionBar.style.color = '#aaa';
+    return;
+  }
+
+  // ── Desktop mode: view-only rendering ────────────────────────────────────
   if (!sceneManager || !moleculeRenderer) return;
 
-  const name = entry.names.en ?? entry.names.de ?? 'Unknown';
   const viewMol = deserializeMolecule(name, entry.format, {
     formula: entry.formula,
     category: entry.category,
     names: entry.names,
   });
 
-  // Show library molecule in view-only mode (replace builder's rendered group temporarily)
   moleculeRenderer.clear();
   const { group, boundingRadius } = moleculeRenderer.renderMolecule(viewMol);
   sceneManager.add(group);
