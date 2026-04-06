@@ -3,9 +3,11 @@ import { type NormalizedLandmark, type Landmark } from '@mediapipe/tasks-vision'
 import { HAND_LANDMARKS } from './HandTracker';
 
 // ── Pinch thresholds (normalized screen-space distance) ──────────────────────
-const PINCH_ON_THRESHOLD = 0.04;   // thumb tip to index tip: pinch activates
-const PINCH_OFF_THRESHOLD = 0.06;  // hysteresis: pinch releases above this
-const PINCH_COOLDOWN_MS = 300;     // minimum ms between triggered pinch events
+const PINCH_ON_THRESHOLD  = 0.055; // thumb tip to index tip: pinch activates (widened from 0.04)
+const PINCH_OFF_THRESHOLD = 0.075; // hysteresis: pinch releases above this (~0.02 gap)
+const PINCH_COOLDOWN_MS   = 200;   // minimum ms between triggered pinch events (reduced from 300)
+/** Consecutive frames dist must stay below PINCH_ON_THRESHOLD before activating. */
+const PINCH_HOLD_FRAMES   = 3;
 
 // ── Open/closed hand thresholds (avg fingertip-to-wrist distance) ─────────────
 const HAND_OPEN_THRESHOLD = 0.15;  // above → open
@@ -32,8 +34,18 @@ export class GestureDetector {
    */
   pinchTriggered = false;
 
+  /**
+   * Continuous pinch progress in [0, 1].
+   * 0 = fingers fully apart (≥ PINCH_OFF_THRESHOLD).
+   * 1 = fingers at or below PINCH_ON_THRESHOLD (pinch active).
+   * Useful for drawing a closing-arc indicator that anticipates the pinch.
+   */
+  pinchProgress = 0;
+
   // Starts at cooldown so the very first pinch always triggers immediately.
   private _timeSinceLastPinchMs = PINCH_COOLDOWN_MS;
+  /** Consecutive frames dist has been below PINCH_ON_THRESHOLD (confirmation hold). */
+  private _pinchHoldFrames = 0;
 
   // ── Open / closed ─────────────────────────────────────────────────────────
   /** True when the hand is open (fingers extended). */
@@ -99,6 +111,8 @@ export class GestureDetector {
   reset(): void {
     this.isPinching = false;
     this.pinchTriggered = false;
+    this.pinchProgress = 0;
+    this._pinchHoldFrames = 0;
     this.isOpen = true;
     this.rotationDelta.identity();
     this._prevPalmQuaternion = null;
@@ -122,9 +136,24 @@ export class GestureDetector {
     const dy = thumb.y - index.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
+    // Continuous progress for the arc indicator — independent of hold logic.
+    this.pinchProgress = 1 - Math.min(1, Math.max(0,
+      (dist - PINCH_ON_THRESHOLD) / (PINCH_OFF_THRESHOLD - PINCH_ON_THRESHOLD),
+    ));
+
+    // Confirmation hold: count consecutive frames below the on-threshold.
+    // Resets the instant dist rises back above it (even into the hysteresis
+    // zone) so jitter can't accumulate across a brief gap. isPinching uses
+    // the standard hysteresis for the *release* direction only.
+    if (dist < PINCH_ON_THRESHOLD) {
+      this._pinchHoldFrames++;
+    } else {
+      this._pinchHoldFrames = 0;
+    }
+
     const wasPinching = this.isPinching;
 
-    if (!this.isPinching && dist < PINCH_ON_THRESHOLD) {
+    if (!this.isPinching && this._pinchHoldFrames >= PINCH_HOLD_FRAMES) {
       this.isPinching = true;
     } else if (this.isPinching && dist > PINCH_OFF_THRESHOLD) {
       this.isPinching = false;

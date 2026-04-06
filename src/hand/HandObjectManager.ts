@@ -76,6 +76,10 @@ export class HandObjectManager {
   private _approachingAtom: Atom | null = null;
   private _nearestGhost: GhostInfo | null = null;
 
+  // ── Simple mode (Option D) ─────────────────────────────────────────────────
+  /** When true, skips APPROACHING/DOCKING and shows ghosts for all atoms at once. */
+  private _simpleMode = false;
+
   // ── Atom mesh ↔ Atom mapping ───────────────────────────────────────────────
   private _currentAtomMeshes: THREE.Mesh[] = [];
   private readonly _atomMeshToAtom = new Map<THREE.Mesh, Atom>();
@@ -85,6 +89,10 @@ export class HandObjectManager {
   private _prevFistY: number | null = null;
   private _smoothedFistY: number | null = null;
 
+  // ── Rotation hand overlay state (read by HandOverlay) ─────────────────────
+  private _rotationHandDetected = false;
+  private _zoomDirection: 'in' | 'out' | 'none' = 'none';
+
   // ── Atom approach highlight ────────────────────────────────────────────────
   private readonly _materialLibrary: MaterialLibrary;
   private _highlightedMesh: THREE.Mesh | null = null;
@@ -93,6 +101,29 @@ export class HandObjectManager {
   // ── Grabbed element sphere (follows fingertip while element is held) ───────
   private readonly _grabbedSphere: THREE.Mesh;
   private readonly _grabbedSphereMat: THREE.MeshPhongMaterial;
+
+  // ── Cursor ring (billboard torus, always visible when hand detected) ───────
+  private readonly _cursorRing: THREE.Mesh;
+  private readonly _cursorRingMat: THREE.MeshPhongMaterial;
+
+  // ── Grabber hand presence & animation ─────────────────────────────────────
+  private _grabberHandDetected = false;
+  private _totalTimeMs = 0;
+
+  // ── Hovered element color (BROWSING state tint) ────────────────────────────
+  private _hoveredElementColor: { r: number; g: number; b: number } | null = null;
+
+  // ── Targeting line (cursor → nearest atom / ghost) ────────────────────────
+  private readonly _targetLineGeom: THREE.BufferGeometry;
+  private readonly _targetLineDashedMat: THREE.LineDashedMaterial;
+  private readonly _targetLineSolidMat: THREE.LineBasicMaterial;
+  private readonly _targetLine: THREE.Line;
+  /** Scratch vector — world position of the line's target end each frame. */
+  private readonly _targetLineAtomPos = new THREE.Vector3();
+  /** Nearest unsaturated atom mesh this frame (set in _stateGrabbed, cleared before switch). */
+  private _nearestAtomMesh: THREE.Mesh | null = null;
+  /** Screen-space distance to _nearestAtomMesh (px). */
+  private _nearestAtomScreenDist = Infinity;
 
   // ── Reusable Three.js scratch objects (avoid per-frame allocations) ────────
   private readonly _dampedQ  = new THREE.Quaternion();
@@ -137,6 +168,47 @@ export class HandObjectManager {
     this._grabbedSphere.visible = false;
     this._scene.add(this._grabbedSphere);
 
+    // ── Cursor ring (billboard torus, always visible when grabber hand is detected)
+    this._cursorRingMat = new THREE.MeshPhongMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.6,
+      side: THREE.DoubleSide,
+    });
+    this._cursorRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.35, 0.045, 8, 32),
+      this._cursorRingMat,
+    );
+    this._cursorRing.visible = false;
+    this._scene.add(this._cursorRing);
+
+    // ── Targeting line ─────────────────────────────────────────────────────
+    // Two-point BufferGeometry shared by both dashed and solid materials.
+    const linePositions = new Float32Array(6); // point A (xyz) + point B (xyz)
+    this._targetLineGeom = new THREE.BufferGeometry();
+    this._targetLineGeom.setAttribute(
+      'position',
+      new THREE.BufferAttribute(linePositions, 3),
+    );
+    this._targetLineDashedMat = new THREE.LineDashedMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.5,
+      dashSize: 0.15,
+      gapSize: 0.10,
+    });
+    this._targetLineSolidMat = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.85,
+    });
+    this._targetLine = new THREE.Line(this._targetLineGeom, this._targetLineDashedMat);
+    this._targetLine.visible = false;
+    this._scene.add(this._targetLine);
+
+    // ── Own molecule renderer ──────────────────────────────────────────────
+    this._renderer = new MoleculeRenderer();
+
     // ── Intercept builder.onChanged ────────────────────────────────────────
     this._savedOnChanged = builder.onChanged;
 
@@ -145,8 +217,15 @@ export class HandObjectManager {
       this._ghostRenderer.clearGhosts();
       this._setAtomHighlight(null); // mesh is about to be replaced; clear before rebuild
       this._approachingAtom = null;
+      this._nearestGhost = null;
+      // After placement (APPROACHING/DOCKING) reset to IDLE so the user must
+      // re-pick an element for each new atom bond.
       if (this.grabberState === 'APPROACHING' || this.grabberState === 'DOCKING') {
-        this.grabberState = 'GRABBED';
+        this.grabberState = 'IDLE';
+      }
+      // Simple mode also resets to IDLE after each placement.
+      if (this._simpleMode && this.grabberState === 'GRABBED' && geo.atoms.length > 0) {
+        this.grabberState = 'IDLE';
       }
 
       this._renderer.clear();
@@ -184,6 +263,7 @@ export class HandObjectManager {
       ? frame.timestamp - this._lastTimestamp
       : 0;
     this._lastTimestamp = frame.timestamp;
+    this._totalTimeMs += elapsedMs;
 
     // ── Assign hand roles ──────────────────────────────────────────────────
     // MediaPipe label "Left"/"Right" = user's actual hand.
@@ -206,13 +286,17 @@ export class HandObjectManager {
     }
 
     // Update gesture detectors (reset if hand not present)
+    this._rotationHandDetected = !!(rotLm && rotWl);
     if (rotLm && rotWl) {
       this._detectorRotation.update(rotLm, rotWl, elapsedMs);
     } else {
       this._detectorRotation.reset();
       this._prevFistY     = null;
       this._smoothedFistY = null;
+      this._zoomDirection = 'none';
     }
+
+    this._grabberHandDetected = !!(grabLm && grabWl);
 
     if (grabLm && grabWl) {
       this._detectorGrabber.update(grabLm, grabWl, elapsedMs);
@@ -230,6 +314,60 @@ export class HandObjectManager {
     this._detectorGrabber.reset();
     this._prevFistY = null;
   }
+
+  /** Toggle Option D (simple mode): show all ghosts at once, direct pinch-to-place. */
+  setSimpleMode(v: boolean): void {
+    this._simpleMode = v;
+    // Clear any in-progress APPROACHING/DOCKING state when switching modes.
+    this._ghostRenderer.clearGhosts();
+    this._nearestGhost    = null;
+    this._approachingAtom = null;
+    if (this.grabberState === 'APPROACHING' || this.grabberState === 'DOCKING') {
+      this.grabberState = 'GRABBED';
+    }
+  }
+
+  /** True when Option D (simple mode) is active. */
+  get simpleMode(): boolean { return this._simpleMode; }
+
+  /** True when the grabber hand is tracked this frame. */
+  get grabberHandDetected(): boolean { return this._grabberHandDetected; }
+
+  /**
+   * True when the user has grabbed an element but the molecule is still empty —
+   * the next pinch will place the first atom. Used by HandOverlay to show the
+   * placement hint text.
+   */
+  get firstAtomMode(): boolean {
+    return this.grabberState === 'GRABBED' && this._currentAtomMeshes.length === 0;
+  }
+
+  /** Pinch progress [0,1] for the grabber hand — used by HandOverlay for the arc indicator. */
+  get pinchProgress(): number { return this._detectorGrabber.pinchProgress; }
+
+  /** True for exactly one frame when a new grabber-hand pinch fires. */
+  get pinchTriggered(): boolean { return this._detectorGrabber.pinchTriggered; }
+
+  /** True when the rotation hand is tracked this frame. */
+  get rotationHandDetected(): boolean { return this._rotationHandDetected; }
+
+  /** True when the rotation hand is open (palm extended = rotating mode). */
+  get rotationIsOpen(): boolean { return this._detectorRotation.isOpen; }
+
+  /**
+   * Signed rotation magnitude in radians applied this frame.
+   * Positive = counterclockwise (y-axis up), negative = clockwise.
+   * 0 when the hand is still or inside the dead zone.
+   */
+  get rotationSignedAngleRad(): number {
+    const d = this._detectorRotation.rotationDelta;
+    const angle = 2 * Math.acos(Math.min(1, Math.abs(d.w)));
+    if (angle < 0.001) return 0;
+    return angle * (d.y >= 0 ? 1 : -1);
+  }
+
+  /** Current zoom direction from closed-fist vertical movement. */
+  get zoomDirection(): 'in' | 'out' | 'none' { return this._zoomDirection; }
 
   dispose(): void {
     // Restore original builder.onChanged
@@ -250,10 +388,17 @@ export class HandObjectManager {
       : { atoms: [], bonds: [], boundingRadius: 0, center: [0, 0, 0] as [number,number,number] };
     this._savedOnChanged(geo);
 
-    // Clean up grabbed sphere
+    // Clean up grabbed sphere and cursor ring
     this._scene.remove(this._grabbedSphere);
     this._grabbedSphere.geometry.dispose();
     this._grabbedSphereMat.dispose();
+    this._scene.remove(this._cursorRing);
+    this._cursorRing.geometry.dispose();
+    this._cursorRingMat.dispose();
+    this._scene.remove(this._targetLine);
+    this._targetLineGeom.dispose();
+    this._targetLineDashedMat.dispose();
+    this._targetLineSolidMat.dispose();
 
     // Clear UI state
     this._atomGrabList.highlightElement(null);
@@ -267,8 +412,9 @@ export class HandObjectManager {
     const det = this._detectorRotation;
 
     if (det.isOpen) {
-      this._prevFistY    = null;
+      this._prevFistY     = null;
       this._smoothedFistY = null;
+      this._zoomDirection = 'none';
 
       // Apply a fraction of the rotation delta (damping reduces jitter).
       // Skip deltas smaller than ROTATION_DEAD_ZONE to prevent drift when
@@ -295,8 +441,14 @@ export class HandObjectManager {
           const multiplier = 1 + yDelta * ZOOM_SENSITIVITY;
           this._pivotScale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, this._pivotScale * multiplier));
           this._pivotGroup.scale.setScalar(this._pivotScale);
+          // Dead-zone of 0.002 suppresses jitter artefacts in the zoom indicator
+          this._zoomDirection = yDelta > 0.002 ? 'in' : yDelta < -0.002 ? 'out' : 'none';
+        } else {
+          this._zoomDirection = 'none';
         }
         this._prevFistY = this._smoothedFistY;
+      } else {
+        this._zoomDirection = 'none';
       }
     }
   }
@@ -319,6 +471,10 @@ export class HandObjectManager {
     const tipPageX   = canvasRect.left + tipScreenX;    // page-space pixels (for DOM rect check)
     const tipPageY   = canvasRect.top  + tipScreenY;
 
+    // Reset per-frame nearest-atom tracking (set inside _stateGrabbed)
+    this._nearestAtomMesh = null;
+    this._nearestAtomScreenDist = Infinity;
+
     switch (this.grabberState) {
       case 'IDLE':
       case 'BROWSING':
@@ -335,7 +491,8 @@ export class HandObjectManager {
         break;
     }
 
-    this._updateGrabbedSphere(tipScreenX, tipScreenY);
+    this._updateCursor(tipScreenX, tipScreenY);
+    this._updateTargetLine();
   }
 
   private _stateIdleBrowsing(
@@ -348,14 +505,19 @@ export class HandObjectManager {
 
     if (el !== null) {
       this.grabberState = 'BROWSING';
+      this._hoveredElementColor = el.color;
       if (det.pinchTriggered) {
         this._builder.setElement(el);
         this._grabbedSphereMat.color.setRGB(el.color.r, el.color.g, el.color.b);
         this.grabberState = 'GRABBED';
+        this._hoveredElementColor = null;
         this._atomGrabList.highlightElement(null);
       }
-    } else if (this.grabberState === 'BROWSING') {
-      this.grabberState = 'IDLE';
+    } else {
+      this._hoveredElementColor = null;
+      if (this.grabberState === 'BROWSING') {
+        this.grabberState = 'IDLE';
+      }
     }
   }
 
@@ -366,15 +528,50 @@ export class HandObjectManager {
   ): void {
     const mol = this._builder.getMolecule();
 
-    // Empty molecule: pinch anywhere to place the first atom
+    // Empty molecule: pinch anywhere to place the first atom (both modes)
     if (mol.atoms.length === 0) {
       this._setAtomHighlight(null);
       if (det.pinchTriggered) {
         this._builder.addFirstAtom();
-        // builder.onChanged fires: state stays GRABBED, mesh map is rebuilt
+        // builder.onChanged fires: state reset to IDLE (fix a)
       }
       return;
     }
+
+    // ── Option D (simple mode): show all ghosts, direct pinch-to-place ────────
+    if (this._simpleMode) {
+      this._setAtomHighlight(null);
+
+      // Rebuild ghost list whenever it was cleared (e.g. after each placement)
+      if (this._ghostRenderer.getGhosts().length === 0) {
+        for (const mesh of this._currentAtomMeshes) {
+          const atom = this._atomMeshToAtom.get(mesh);
+          if (atom && !atom.done) {
+            this._ghostRenderer.addGhostsForAtom(
+              atom,
+              this._pivotGroup as unknown as THREE.Scene,
+            );
+          }
+        }
+      }
+
+      // Find nearest ghost to fingertip
+      let nearestGhost: GhostInfo | null = null;
+      let nearestDist = Infinity;
+      for (const ghost of this._ghostRenderer.getGhosts()) {
+        const d = this._meshScreenDist(ghost.mesh, tipScreenX, tipScreenY);
+        if (d < nearestDist) { nearestDist = d; nearestGhost = ghost; }
+      }
+      this._nearestGhost = nearestDist < GHOST_DOCK_PX ? nearestGhost : null;
+
+      if (this._nearestGhost !== null && det.pinchTriggered) {
+        this._builder.linkNow(this._nearestGhost.atom, this._nearestGhost.connectionBitfield);
+        // builder.onChanged fires: ghosts cleared, state reset to IDLE (fix a)
+      }
+      return;
+    }
+
+    // ── Option A: approach-then-dock ──────────────────────────────────────────
 
     // Find the closest unsaturated atom mesh within threshold
     let nearestMesh: THREE.Mesh | null = null;
@@ -388,6 +585,10 @@ export class HandObjectManager {
       const d = this._meshScreenDist(mesh, tipScreenX, tipScreenY);
       if (d < nearestDist) { nearestDist = d; nearestAtom = atom; nearestMesh = mesh; }
     }
+
+    // Save for targeting line (shown at 2× the approach threshold)
+    this._nearestAtomMesh = nearestMesh;
+    this._nearestAtomScreenDist = nearestDist;
 
     if (nearestAtom !== null && nearestDist < ATOM_APPROACH_PX) {
       // Highlight the atom the grabber finger is approaching
@@ -515,9 +716,83 @@ export class HandObjectManager {
     }
   }
 
-  /** Position the grabbed-element sphere at the fingertip (unprojected to z=0 plane). */
-  private _updateGrabbedSphere(tipScreenX: number, tipScreenY: number): void {
-    if (this.grabberState === 'IDLE' || this.grabberState === 'BROWSING') {
+  /**
+   * Draw (or hide) the targeting line connecting the 3D cursor to its target:
+   *
+   * - GRABBED + atom within 2× approach threshold → dashed white line to nearest unsaturated atom
+   * - APPROACHING → solid element-colored line to the approaching atom
+   * - DOCKING     → solid element-colored line to the nearest ghost sphere
+   * - All other states → line hidden
+   *
+   * Must be called after both the state machine and _updateCursor() have run
+   * (relies on _planeHit being fresh and _nearestAtomMesh / _nearestGhost up-to-date).
+   */
+  private _updateTargetLine(): void {
+    const state = this.grabberState;
+
+    // Determine target world position
+    let targetPos: THREE.Vector3 | null = null;
+
+    if (state === 'GRABBED') {
+      if (this._simpleMode) {
+        // Simple mode: solid line to nearest ghost when in range
+        if (this._nearestGhost !== null) {
+          this._nearestGhost.mesh.getWorldPosition(this._targetLineAtomPos);
+          targetPos = this._targetLineAtomPos;
+        }
+      } else if (this._nearestAtomMesh !== null &&
+          this._nearestAtomScreenDist < ATOM_APPROACH_PX * 2) {
+        this._nearestAtomMesh.getWorldPosition(this._targetLineAtomPos);
+        targetPos = this._targetLineAtomPos;
+      }
+    } else if (state === 'APPROACHING') {
+      const mesh = this._approachingAtom ? this._meshForAtom(this._approachingAtom) : null;
+      if (mesh) {
+        mesh.getWorldPosition(this._targetLineAtomPos);
+        targetPos = this._targetLineAtomPos;
+      }
+    } else if (state === 'DOCKING') {
+      if (this._nearestGhost) {
+        this._nearestGhost.mesh.getWorldPosition(this._targetLineAtomPos);
+        targetPos = this._targetLineAtomPos;
+      }
+    }
+
+    if (!targetPos || !this._grabberHandDetected) {
+      this._targetLine.visible = false;
+      return;
+    }
+
+    // Update the two-point geometry (cursor → target)
+    const attr = this._targetLineGeom.getAttribute('position') as THREE.BufferAttribute;
+    const cursor = this._planeHit; // populated by _updateCursor earlier this frame
+    attr.setXYZ(0, cursor.x, cursor.y, cursor.z);
+    attr.setXYZ(1, targetPos.x, targetPos.y, targetPos.z);
+    attr.needsUpdate = true;
+
+    if (state === 'GRABBED' && !this._simpleMode) {
+      // Option A dashed white: computeLineDistances() is required for dashes to render
+      this._targetLine.material = this._targetLineDashedMat;
+      this._targetLine.computeLineDistances();
+    } else {
+      // Solid, tinted with the grabbed element's color
+      this._targetLineSolidMat.color.copy(this._grabbedSphereMat.color);
+      this._targetLine.material = this._targetLineSolidMat;
+    }
+
+    this._targetLine.visible = true;
+  }
+
+  /**
+   * Position and style the 3D cursor (ring + sphere) at the fingertip.
+   *
+   * The cursor ring is visible whenever the grabber hand is detected.
+   * The filled sphere is visible only in GRABBED / APPROACHING / DOCKING states.
+   * Both are unprojected from screen coords to the z=0 plane of the 3D scene.
+   */
+  private _updateCursor(tipScreenX: number, tipScreenY: number): void {
+    if (!this._grabberHandDetected) {
+      this._cursorRing.visible   = false;
       this._grabbedSphere.visible = false;
       return;
     }
@@ -531,8 +806,86 @@ export class HandObjectManager {
       this._camera,
     );
 
-    if (this._raycaster.ray.intersectPlane(this._zeroPlane, this._planeHit)) {
-      this._grabbedSphere.position.copy(this._planeHit);
+    if (!this._raycaster.ray.intersectPlane(this._zeroPlane, this._planeHit)) {
+      this._cursorRing.visible   = false;
+      this._grabbedSphere.visible = false;
+      return;
+    }
+
+    const pos   = this._planeHit;
+    const state = this.grabberState;
+
+    // ── Cursor ring: always visible, billboarded to face camera ───────────────
+    this._cursorRing.position.copy(pos);
+    this._cursorRing.quaternion.copy(this._camera.quaternion);
+    this._cursorRing.visible = true;
+
+    // ── State-based appearance ────────────────────────────────────────────────
+    if (state === 'IDLE') {
+      this._cursorRingMat.color.setRGB(1, 1, 1);
+      this._cursorRingMat.opacity = 0.6;
+      this._cursorRing.scale.setScalar(1);
+      this._grabbedSphere.visible = false;
+    } else if (state === 'BROWSING') {
+      if (this._hoveredElementColor) {
+        const { r, g, b } = this._hoveredElementColor;
+        this._cursorRingMat.color.setRGB(r, g, b);
+      } else {
+        this._cursorRingMat.color.setRGB(1, 1, 1);
+      }
+      this._cursorRingMat.opacity = 0.9;
+      this._cursorRing.scale.setScalar(1);
+      this._grabbedSphere.visible = false;
+    } else if (state === 'GRABBED') {
+      if (this._currentAtomMeshes.length === 0) {
+        // First-atom mode: gentle pulse on both ring and sphere so the user can
+        // see where to pinch. Slower frequency and lower opacity than APPROACHING
+        // to give a calm "waiting" feel rather than urgency.
+        const pulse = 1 + 0.12 * Math.sin(this._totalTimeMs * 0.003);
+        this._cursorRingMat.color.setRGB(1, 1, 1);
+        this._cursorRingMat.opacity = 0.65;
+        this._cursorRing.scale.setScalar(pulse);
+        this._grabbedSphere.position.copy(pos);
+        this._grabbedSphere.scale.setScalar(1.333 * pulse);
+        this._grabbedSphereMat.opacity = 0.55; // more ghost-like
+        this._grabbedSphere.visible = true;
+      } else if (this._simpleMode && this._nearestGhost !== null) {
+        // Simple mode: ghost within dock range → green "ready to place" signal
+        this._cursorRingMat.color.setRGB(0.15, 1, 0.3);
+        this._cursorRingMat.opacity = 0.9;
+        this._cursorRing.scale.setScalar(1);
+        this._grabbedSphere.position.copy(pos);
+        this._grabbedSphere.scale.setScalar(1.333);
+        this._grabbedSphereMat.opacity = 0.85;
+        this._grabbedSphere.visible = true;
+      } else {
+        this._cursorRingMat.color.setRGB(1, 1, 1);
+        this._cursorRingMat.opacity = 0.8;
+        this._cursorRing.scale.setScalar(1);
+        this._grabbedSphere.position.copy(pos);
+        // 0.4 / 0.3 ≈ 1.333: plan calls for slightly larger sphere in GRABBED
+        this._grabbedSphere.scale.setScalar(1.333);
+        this._grabbedSphereMat.opacity = 0.75;
+        this._grabbedSphere.visible = true;
+      }
+    } else if (state === 'APPROACHING') {
+      // Pulse both ring and sphere to signal "getting close"
+      const pulse = 1 + 0.18 * Math.sin(this._totalTimeMs * 0.006);
+      this._cursorRingMat.color.setRGB(1, 1, 1);
+      this._cursorRingMat.opacity = 0.8;
+      this._cursorRing.scale.setScalar(pulse);
+      this._grabbedSphere.position.copy(pos);
+      this._grabbedSphere.scale.setScalar(1.333 * pulse);
+      this._grabbedSphereMat.opacity = 0.75;
+      this._grabbedSphere.visible = true;
+    } else {
+      // DOCKING: green tint signals "ready to place"
+      this._cursorRingMat.color.setRGB(0.15, 1, 0.3);
+      this._cursorRingMat.opacity = 0.9;
+      this._cursorRing.scale.setScalar(1);
+      this._grabbedSphere.position.copy(pos);
+      this._grabbedSphere.scale.setScalar(1.333);
+      this._grabbedSphereMat.opacity = 0.85;
       this._grabbedSphere.visible = true;
     }
   }

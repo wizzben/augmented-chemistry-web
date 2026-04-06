@@ -128,6 +128,7 @@ document.addEventListener('keydown', (e) => {
 const arBtn           = document.getElementById('ar-btn')           as HTMLButtonElement;
 const markerlessBtn   = document.getElementById('markerless-btn')   as HTMLButtonElement;
 const swapHandsBtn    = document.getElementById('swap-hands-btn')   as HTMLButtonElement;
+const simpleModeBtn   = document.getElementById('simple-mode-btn')  as HTMLButtonElement;
 const paletteGrid     = document.getElementById('element-grid')!;
 const atomGrabListEl  = document.getElementById('atom-grab-list')!;
 const handOverlayCanvas = document.getElementById('hand-overlay')   as HTMLCanvasElement;
@@ -235,10 +236,21 @@ let activeHandObjectManager: {
   dispose(): void;
   grabberState: import('@/hand/HandObjectManager').GrabberState;
   setSwapHands(v: boolean): void;
+  setSimpleMode(v: boolean): void;
+  readonly simpleMode: boolean;
+  readonly grabberHandDetected: boolean;
+  readonly rotationHandDetected: boolean;
+  readonly firstAtomMode: boolean;
+  readonly pinchProgress: number;
+  readonly pinchTriggered: boolean;
+  readonly rotationIsOpen: boolean;
+  readonly rotationSignedAngleRad: number;
+  readonly zoomDirection: 'in' | 'out' | 'none';
 } | null = null;
 let activeGhostRenderer: { dispose(): void } | null = null;
 let markerlessModeActive = false;
 let swapHandsActive      = false;
+let simpleModeActive     = false;
 
 markerlessBtn?.addEventListener('click', async () => {
   if (!sceneManager) return;
@@ -258,8 +270,14 @@ markerlessBtn?.addEventListener('click', async () => {
     cachedHandOverlay?.hide();
     sceneManager.setMarkerlessMode(false);
 
-    // Restore desktop controls
+    // Restore desktop controls and pass current atom meshes so raycasting works
     desktopControls = new DesktopControls(sceneManager, builder, infoBar);
+    if (currentAtomMeshes.length > 0) {
+      desktopControls.updateGeometry(
+        { atoms: [], bonds: [], boundingRadius: 0, center: [0, 0, 0] as [number, number, number] },
+        currentAtomMeshes,
+      );
+    }
 
     // Fade out atom grab list, then fully hide after transition
     atomGrabListEl.style.opacity = '0';
@@ -271,11 +289,14 @@ markerlessBtn?.addEventListener('click', async () => {
     requestAnimationFrame(() => { paletteGrid.style.opacity = '1'; });
 
     swapHandsBtn.style.display = 'none';
+    simpleModeBtn.style.display = 'none';
     arBtn.disabled = false;
     markerlessBtn.textContent = 'Markerless';
     infoBar.textContent = 'Select an element and click the canvas to start building.';
     swapHandsActive      = false;
-    swapHandsBtn.textContent = 'L=Grab, R=Rotate';
+    simpleModeActive     = false;
+    swapHandsBtn.textContent  = 'L=Grab, R=Rotate';
+    simpleModeBtn.textContent = 'Simple Mode: Off';
     return;
   }
 
@@ -339,7 +360,8 @@ markerlessBtn?.addEventListener('click', async () => {
 
     cachedHandOverlay.syncSize();
     cachedHandOverlay.show();
-    swapHandsBtn.style.display = '';
+    swapHandsBtn.style.display   = '';
+    simpleModeBtn.style.display  = '';
 
     markerlessBtn.disabled = false;
     markerlessBtn.textContent = 'Stop Markerless';
@@ -354,9 +376,47 @@ markerlessBtn?.addEventListener('click', async () => {
       handObjectManager.update(frame);
       const el = builder.getCurrentElement();
       cachedHandOverlay!.update(frame, handObjectManager.grabberState, {
-        grabbedColor: el?.color,
-        swapHands: swapHandsActive,
+        grabbedColor:          el?.color,
+        swapHands:             swapHandsActive,
+        pinchProgress:         handObjectManager.pinchProgress,
+        pinchTriggered:        handObjectManager.pinchTriggered,
+        grabberHandDetected:   handObjectManager.grabberHandDetected,
+        firstAtomMode:         handObjectManager.firstAtomMode,
+        rotationIsOpen:        handObjectManager.rotationIsOpen,
+        rotationSignedAngle:   handObjectManager.rotationSignedAngleRad,
+        zoomDirection:         handObjectManager.zoomDirection,
       });
+
+      // Step-by-step guidance: tell the user what to do next.
+      const gSeen        = handObjectManager.grabberHandDetected;
+      const rSeen        = handObjectManager.rotationHandDetected;
+      const grabberHand  = swapHandsActive ? 'right' : 'left';
+      const gs           = handObjectManager.grabberState;
+      let guidance: string;
+
+      if (!gSeen && !rSeen) {
+        guidance = 'Show your hands to the camera';
+      } else if (!gSeen) {
+        guidance = `Show ${grabberHand} hand to grab atoms`;
+      } else if (gs === 'IDLE') {
+        guidance = 'Move finger over element list to pick';
+      } else if (gs === 'BROWSING') {
+        guidance = `Pinch to grab ${el?.symbol ?? 'element'}`;
+      } else if (gs === 'GRABBED') {
+        if (handObjectManager.firstAtomMode) {
+          guidance = 'Pinch anywhere to place first atom';
+        } else if (handObjectManager.simpleMode) {
+          guidance = 'Move finger over a bond position and pinch';
+        } else {
+          guidance = 'Move toward an atom to bond';
+        }
+      } else if (gs === 'APPROACHING') {
+        guidance = 'Move closer to a bond position';
+      } else {
+        // DOCKING
+        guidance = `Pinch to place ${el?.symbol ?? 'atom'}`;
+      }
+      infoBar.textContent = guidance;
     });
 
     activeHandManager       = handManager;
@@ -382,6 +442,12 @@ swapHandsBtn?.addEventListener('click', () => {
   swapHandsActive = !swapHandsActive;
   activeHandObjectManager?.setSwapHands(swapHandsActive);
   swapHandsBtn.textContent = swapHandsActive ? 'R=Grab, L=Rotate' : 'L=Grab, R=Rotate';
+});
+
+simpleModeBtn?.addEventListener('click', () => {
+  simpleModeActive = !simpleModeActive;
+  activeHandObjectManager?.setSimpleMode(simpleModeActive);
+  simpleModeBtn.textContent = simpleModeActive ? 'Simple Mode: On' : 'Simple Mode: Off';
 });
 
 // ─── Library panel (view-only) ────────────────────────────────────────────

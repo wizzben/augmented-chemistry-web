@@ -11,15 +11,8 @@ export interface GhostInfo {
   connectionBitfield: number;
 }
 
-// Small dots — raycasted for interaction
+// Small dots — raycasted for interaction (shared geometry, instance-owned materials)
 const GHOST_GEOMETRY = new THREE.SphereGeometry(0.1, 8, 6);
-const GHOST_MATERIAL_1 = new THREE.MeshPhongMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.8, depthWrite: false });
-const GHOST_MATERIAL_2 = new THREE.MeshPhongMaterial({ color: 0xdddd00, transparent: true, opacity: 0.8, depthWrite: false });
-const GHOST_MATERIAL_3 = new THREE.MeshPhongMaterial({ color: 0x00ccdd, transparent: true, opacity: 0.8, depthWrite: false });
-const GHOST_MATERIALS = [GHOST_MATERIAL_1, GHOST_MATERIAL_2, GHOST_MATERIAL_3];
-
-// Wireframe tetrahedron — visual context only, not raycasted
-const WIREFRAME_MATERIAL = new THREE.LineBasicMaterial({ color: 0x4466aa, transparent: true, opacity: 0.35 });
 
 // Corner slot indices in the 14-entry transform array (bitfields 1,2,4,8 → indices 0,1,3,7)
 const CORNER_INDICES = [0, 1, 3, 7] as const;
@@ -32,8 +25,18 @@ export class GhostRenderer {
   private wireframeGeo: THREE.BufferGeometry | null = null;
   private tetra: TetraMatrices;
 
+  // Per-instance materials so dispose() doesn't break other GhostRenderer instances.
+  private readonly _ghostMaterials: THREE.MeshPhongMaterial[];
+  private readonly _wireframeMat: THREE.LineBasicMaterial;
+
   constructor(tetra?: TetraMatrices) {
     this.tetra = tetra ?? setTetraMatrices(1.0);
+    this._ghostMaterials = [
+      new THREE.MeshPhongMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.8, depthWrite: false }),
+      new THREE.MeshPhongMaterial({ color: 0xdddd00, transparent: true, opacity: 0.8, depthWrite: false }),
+      new THREE.MeshPhongMaterial({ color: 0x00ccdd, transparent: true, opacity: 0.8, depthWrite: false }),
+    ];
+    this._wireframeMat = new THREE.LineBasicMaterial({ color: 0x4466aa, transparent: true, opacity: 0.35 });
   }
 
   /**
@@ -63,7 +66,7 @@ export class GhostRenderer {
     }
     this.wireframeGeo = new THREE.BufferGeometry();
     this.wireframeGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    this.wireframe = new THREE.LineSegments(this.wireframeGeo, WIREFRAME_MATERIAL);
+    this.wireframe = new THREE.LineSegments(this.wireframeGeo, this._wireframeMat);
     scene.add(this.wireframe);
 
     // ── Bond-position dots ───────────────────────────────────────────────────
@@ -76,7 +79,7 @@ export class GhostRenderer {
       const bondOrder = AC_ATOM_COUNT_CONNECTIONS_OF_BITFIELD[candidateBitfield]; // 1, 2, or 3
       const worldMatrix = mat44Multiply(this.tetra.transform[atom.language][i], atom.matrix);
 
-      const mesh = new THREE.Mesh(GHOST_GEOMETRY, GHOST_MATERIALS[bondOrder - 1]);
+      const mesh = new THREE.Mesh(GHOST_GEOMETRY, this._ghostMaterials[bondOrder - 1]);
       mesh.position.set(worldMatrix[12], worldMatrix[13], worldMatrix[14]);
       scene.add(mesh);
 
@@ -102,15 +105,38 @@ export class GhostRenderer {
     }
   }
 
+  /**
+   * Add bond-position dots for one atom WITHOUT clearing existing ghosts or
+   * adding a wireframe tetrahedron. Used by Option D (simple mode) to display
+   * every unsaturated atom's valid bond positions simultaneously.
+   */
+  addGhostsForAtom(atom: Atom, scene: THREE.Scene): void {
+    if (atom.done) return;
+
+    const pool = getPoolOfPossibleConnections(atom.getConnectionBitField(), atom.element.valence);
+
+    for (let i = 0; i < 14; i++) {
+      if (!pool[i]) continue;
+
+      const candidateBitfield = i + 1;
+      const bondOrder = AC_ATOM_COUNT_CONNECTIONS_OF_BITFIELD[candidateBitfield];
+      const worldMatrix = mat44Multiply(this.tetra.transform[atom.language][i], atom.matrix);
+
+      const mesh = new THREE.Mesh(GHOST_GEOMETRY, this._ghostMaterials[bondOrder - 1]);
+      mesh.position.set(worldMatrix[12], worldMatrix[13], worldMatrix[14]);
+      scene.add(mesh);
+
+      this.ghosts.push({ mesh, atom, connectionBitfield: candidateBitfield });
+    }
+  }
+
   getGhosts(): GhostInfo[] {
     return this.ghosts;
   }
 
   dispose(): void {
     this.clearGhosts();
-    GHOST_MATERIAL_1.dispose();
-    GHOST_MATERIAL_2.dispose();
-    GHOST_MATERIAL_3.dispose();
-    WIREFRAME_MATERIAL.dispose();
+    for (const mat of this._ghostMaterials) mat.dispose();
+    this._wireframeMat.dispose();
   }
 }

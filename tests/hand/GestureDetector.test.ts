@@ -51,22 +51,27 @@ describe('GestureDetector', () => {
 
     it('activates when thumb-index distance falls below threshold', () => {
       // landmark 4 = thumb tip, landmark 8 = index tip
-      // Place them very close (dist ≈ 0.02, below 0.04 threshold)
+      // Place them very close (dist = 0.01, well below 0.055 ON threshold).
+      // Hold requirement: 3 consecutive frames below threshold before activating.
       const lm = withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
         8: { x: 0.51, y: 0.50 }, // dist = 0.01
       });
-      detector.update(lm, flatWorldLandmarks(), 400);
+      detector.update(lm, flatWorldLandmarks(), 16);
+      detector.update(lm, flatWorldLandmarks(), 16);
+      detector.update(lm, flatWorldLandmarks(), 16);
       expect(detector.isPinching).toBe(true);
     });
 
-    it('fires pinchTriggered on the first frame of a new pinch', () => {
+    it('fires pinchTriggered on the frame the hold is confirmed', () => {
       const lm = withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
         8: { x: 0.51, y: 0.50 },
       });
-      // First call: cooldown starts at -Infinity, so 400ms elapsed exceeds 300ms
-      detector.update(lm, flatWorldLandmarks(), 400);
+      // Cooldown starts pre-expired; trigger fires on the 3rd consecutive frame.
+      detector.update(lm, flatWorldLandmarks(), 16);
+      detector.update(lm, flatWorldLandmarks(), 16);
+      detector.update(lm, flatWorldLandmarks(), 16);
       expect(detector.pinchTriggered).toBe(true);
     });
 
@@ -75,10 +80,12 @@ describe('GestureDetector', () => {
         4: { x: 0.50, y: 0.50 },
         8: { x: 0.51, y: 0.50 },
       });
-      detector.update(lmPinch, flatWorldLandmarks(), 400);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
       expect(detector.pinchTriggered).toBe(true);
 
-      // Second frame still pinching
+      // Fourth frame: still pinching, but trigger is edge-detected (false now)
       detector.update(lmPinch, flatWorldLandmarks(), 16);
       expect(detector.pinchTriggered).toBe(false);
     });
@@ -90,20 +97,24 @@ describe('GestureDetector', () => {
       });
       const lmRelease = withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.60, y: 0.50 }, // dist = 0.10, above 0.06 release threshold
+        8: { x: 0.60, y: 0.50 }, // dist = 0.10, above 0.075 release threshold
       });
 
-      // First pinch
-      detector.update(lmPinch, flatWorldLandmarks(), 400);
+      // First pinch — 3 frames to confirm hold
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
       expect(detector.pinchTriggered).toBe(true);
 
       // Release
       detector.update(lmRelease, flatWorldLandmarks(), 16);
       expect(detector.isPinching).toBe(false);
 
-      // Second pinch within cooldown (only 16ms elapsed)
+      // Second pinch within cooldown — trigger fires only after 200ms have elapsed
+      // since the last trigger; total elapsed so far is well under that.
       detector.update(lmPinch, flatWorldLandmarks(), 16);
-      // cooldown = 300ms; elapsed since last trigger = 16+16 = 32ms < 300ms
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
       expect(detector.pinchTriggered).toBe(false);
     });
 
@@ -118,39 +129,46 @@ describe('GestureDetector', () => {
       });
 
       // First pinch
-      detector.update(lmPinch, flatWorldLandmarks(), 400);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
       expect(detector.pinchTriggered).toBe(true);
 
-      // Release + wait past cooldown
-      detector.update(lmRelease, flatWorldLandmarks(), 350);
+      // Release + wait past cooldown (200ms)
+      detector.update(lmRelease, flatWorldLandmarks(), 250);
 
-      // Second pinch after cooldown
+      // Second pinch after cooldown — needs 3 frames again
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
       detector.update(lmPinch, flatWorldLandmarks(), 16);
       expect(detector.pinchTriggered).toBe(true);
     });
 
-    it('deactivates with hysteresis (only releases above 0.06)', () => {
+    it('deactivates with hysteresis (only releases above 0.075)', () => {
       const lmPinch = withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.51, y: 0.50 }, // dist ≈ 0.01
+        8: { x: 0.51, y: 0.50 }, // dist = 0.01, below ON threshold
       });
       const lmMid = withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.55, y: 0.50 }, // dist = 0.05 — between thresholds
+        8: { x: 0.565, y: 0.50 }, // dist = 0.065 — between ON(0.055) and OFF(0.075)
       });
       const lmFar = withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.58, y: 0.50 }, // dist = 0.08 — above release threshold
+        8: { x: 0.585, y: 0.50 }, // dist = 0.085 — above OFF threshold (0.075)
       });
 
-      detector.update(lmPinch, flatWorldLandmarks(), 400);
+      // Activate with 3-frame hold
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
       expect(detector.isPinching).toBe(true);
 
-      // Distance in hysteresis band — should stay pinching
+      // Distance in hysteresis band — hold counter resets but isPinching stays
       detector.update(lmMid, flatWorldLandmarks(), 16);
       expect(detector.isPinching).toBe(true);
 
-      // Distance above release threshold — should release
+      // Distance above release threshold — releases
       detector.update(lmFar, flatWorldLandmarks(), 16);
       expect(detector.isPinching).toBe(false);
     });
@@ -291,7 +309,10 @@ describe('GestureDetector', () => {
         4: { x: 0.50, y: 0.50 },
         8: { x: 0.51, y: 0.50 },
       });
-      detector.update(lmPinch, flatWorldLandmarks(), 400);
+      // Three frames to satisfy hold requirement
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
+      detector.update(lmPinch, flatWorldLandmarks(), 16);
       expect(detector.isPinching).toBe(true);
 
       detector.reset();
