@@ -296,6 +296,7 @@ markerlessBtn?.addEventListener('click', async () => {
     swapHandsActive      = false;
     simpleModeActive     = false;
     swapHandsBtn.textContent  = 'L=Grab, R=Rotate';
+    cachedAtomGrabList?.setSide('left');
     simpleModeBtn.textContent = 'Simple Mode: Off';
     return;
   }
@@ -441,6 +442,7 @@ markerlessBtn?.addEventListener('click', async () => {
 swapHandsBtn?.addEventListener('click', () => {
   swapHandsActive = !swapHandsActive;
   activeHandObjectManager?.setSwapHands(swapHandsActive);
+  cachedAtomGrabList?.setSide(swapHandsActive ? 'right' : 'left');
   swapHandsBtn.textContent = swapHandsActive ? 'R=Grab, L=Rotate' : 'L=Grab, R=Rotate';
 });
 

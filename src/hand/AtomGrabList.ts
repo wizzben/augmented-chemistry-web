@@ -113,6 +113,21 @@ export class AtomGrabList {
     return null;
   }
 
+  /**
+   * Move the list to the left or right edge of the canvas panel.
+   * Call whenever swap-hands state changes so the list is always on the
+   * grabber-hand side.
+   */
+  setSide(side: 'left' | 'right'): void {
+    if (side === 'right') {
+      this.container.style.left  = 'auto';
+      this.container.style.right = '8px';
+    } else {
+      this.container.style.left  = '8px';
+      this.container.style.right = 'auto';
+    }
+  }
+
   show(): void {
     this.container.style.display = 'flex';
   }
