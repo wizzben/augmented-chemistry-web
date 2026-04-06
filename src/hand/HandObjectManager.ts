@@ -218,14 +218,10 @@ export class HandObjectManager {
       this._setAtomHighlight(null); // mesh is about to be replaced; clear before rebuild
       this._approachingAtom = null;
       this._nearestGhost = null;
-      // After placement (APPROACHING/DOCKING) reset to IDLE so the user must
-      // re-pick an element for each new atom bond.
+      // After placement (APPROACHING/DOCKING) return to GRABBED so the same
+      // element stays loaded and the user can keep bonding without re-picking.
       if (this.grabberState === 'APPROACHING' || this.grabberState === 'DOCKING') {
-        this.grabberState = 'IDLE';
-      }
-      // Simple mode also resets to IDLE after each placement.
-      if (this._simpleMode && this.grabberState === 'GRABBED' && geo.atoms.length > 0) {
-        this.grabberState = 'IDLE';
+        this.grabberState = 'GRABBED';
       }
 
       this._renderer.clear();
@@ -481,7 +477,7 @@ export class HandObjectManager {
         this._stateIdleBrowsing(det, tipPageX, tipPageY);
         break;
       case 'GRABBED':
-        this._stateGrabbed(det, tipScreenX, tipScreenY);
+        this._stateGrabbed(det, tipPageX, tipPageY, tipScreenX, tipScreenY);
         break;
       case 'APPROACHING':
         this._stateApproaching(det, tipScreenX, tipScreenY);
@@ -523,9 +519,30 @@ export class HandObjectManager {
 
   private _stateGrabbed(
     det: GestureDetector,
+    tipPageX: number,
+    tipPageY: number,
     tipScreenX: number,
     tipScreenY: number,
   ): void {
+    // ── Allow element switching while an element is already loaded ─────────────
+    // If the finger is over the atom grab list, highlight it and let the user
+    // pinch to swap to a different element without going back to IDLE first.
+    const listEl = this._atomGrabList.getElementAtScreenPos(tipPageX, tipPageY);
+    if (listEl !== null) {
+      this._atomGrabList.highlightElement(listEl);
+      this._hoveredElementColor = listEl.color;
+      if (det.pinchTriggered) {
+        this._builder.setElement(listEl);
+        this._grabbedSphereMat.color.setRGB(listEl.color.r, listEl.color.g, listEl.color.b);
+        this._atomGrabList.highlightElement(null);
+        this._hoveredElementColor = null;
+      }
+      return; // Don't look for nearby atoms while the finger is over the list
+    }
+    // Finger is not over the list — clear any list highlight left from above
+    this._atomGrabList.highlightElement(null);
+    this._hoveredElementColor = null;
+
     const mol = this._builder.getMolecule();
 
     // Empty molecule: pinch anywhere to place the first atom (both modes)
