@@ -8,9 +8,9 @@ Build 3D organic molecules interactively in three modes:
 
 | Mode | How it works |
 |------|-------------|
-| **Desktop** | Click atoms in the 3D scene to bond them. Hover for ghost-position previews. |
-| **Markerless** | Webcam + MediaPipe hand tracking. Left hand grabs elements, right hand rotates/zooms. |
-| **AR markers** | Physical printed markers detected via ARToolKit. Each marker maps to an element or control action. |
+| **Standard** | Click atoms in the 3D scene to bond them. Hover for ghost-position previews. |
+| **Markerless AR** | Webcam + MediaPipe hand tracking. One hand grabs elements; the other rotates and zooms the molecule. |
+| **AR** | Physical printed markers detected via ARToolKit. Each marker maps to an element or control action. |
 
 The app recognises completed molecules against a library of 100+ compounds and shows the name in real time.
 
@@ -20,12 +20,12 @@ The app recognises completed molecules against a library of 100+ compounds and s
 npm install
 npm run dev        # dev server at localhost:5173
 npm run build      # production build → dist/
-npm run test       # 753 unit tests (~1 s)
+npm run test       # 767 unit tests (~1 s)
 ```
 
-Requires a modern browser with WebGL. Markerless mode requires camera access (HTTPS or localhost). AR mode additionally requires the ARToolKit marker files in `public/patterns/`.
+Requires a modern browser with WebGL. Markerless AR mode requires camera access (HTTPS or localhost). AR mode additionally requires the ARToolKit marker files in `public/patterns/`.
 
-## Markerless mode controls
+## Markerless AR mode controls
 
 | Hand | Gesture | Action |
 |------|---------|--------|
@@ -33,8 +33,12 @@ Requires a modern browser with WebGL. Markerless mode requires camera access (HT
 | Left | Pinch over element | Grab that element |
 | Left | Pinch over element *(while holding another)* | Switch element |
 | Left | Move toward atom, then pinch on ghost | Bond atom |
-| Right (rotation) | Open palm, move | Rotate molecule |
-| Right | Closed fist, move up/down | Zoom in/out |
+| Right (rotation) | Pinch and move | Rotate molecule (clutch: hold pinch while moving) |
+| Right | Closed fist (no pinch), move up/down | Zoom in/out |
+
+The rotation hand uses a 7-state FSM: it must be detected and ready before a pinch engages the rotation clutch. If tracking is lost mid-rotation, a 300 ms grace window lets you recover before the state resets.
+
+**View presets** (shown in markerless mode): **Reset View**, **Front**, **Side**, **Top** — each smoothly slerps the molecule to the target orientation.
 
 **Simple Mode** (toggle button): shows bond slots for *all* unsaturated atoms at once — aim finger at any ghost sphere and pinch to place. Easier than the proximity-based default.
 
