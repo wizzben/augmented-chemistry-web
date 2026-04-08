@@ -22,19 +22,19 @@ import type { Atom } from '@/chemistry/Atom';
 import type { HandFrame } from './HandTracker';
 import type { AtomGrabList } from './AtomGrabList';
 import { GestureDetector } from './GestureDetector';
+import { RotationFSM } from './RotationFSM';
 import { MoleculeRenderer } from '@/rendering/MoleculeRenderer';
 import { GhostRenderer, type GhostInfo } from '@/rendering/GhostRenderer';
 import { computeMoleculeGeometry } from '@/rendering/MoleculeGeometry';
+export type { RotationState } from './RotationFSM';
 
 // ── Tuning constants ─────────────────────────────────────────────────────────
-/** Fraction (0–1) of the palm rotation delta applied each frame. Lower = smoother. */
-const ROTATION_DAMPING = 0.3;
-/**
- * cos(half-angle) dead-zone for palm rotation.
- * delta.w ≥ this → rotation is smaller than ~1.5° → skip to prevent jitter.
- * (w = cos(θ/2); 0.9997 ≈ θ = 2·acos(0.9997) ≈ 1.4°)
- */
-const ROTATION_DEAD_ZONE = 0.9997;
+const ROTATION_CONFIG = {
+  /** Minimum rotation angle (radians, ~1.4°) — smaller deltas are dead-zoned. */
+  minRotationAngle: 0.025,
+  /** Slerp factor applied each frame: pivotQ → _targetQuaternion. Lower = smoother. */
+  smoothingAlpha: 0.3,
+};
 /** Sensitivity of closed-fist vertical movement to scale change per normalized unit. */
 const ZOOM_SENSITIVITY = 2.5;
 /** Low-pass weight applied to the raw fist Y each frame (0=frozen, 1=no smoothing). */
@@ -48,7 +48,7 @@ const GHOST_DOCK_PX = 60;
 /** Hysteresis factor: exit-threshold = enter-threshold × this multiplier. */
 const HYSTERESIS = 1.5;
 
-// ── State type (exported for HandOverlay) ────────────────────────────────────
+// ── State types (exported for HandOverlay) ───────────────────────────────────
 export type GrabberState = 'IDLE' | 'BROWSING' | 'GRABBED' | 'APPROACHING' | 'DOCKING';
 
 export class HandObjectManager {
@@ -89,6 +89,11 @@ export class HandObjectManager {
   private _prevFistY: number | null = null;
   private _smoothedFistY: number | null = null;
 
+  // ── Rotation FSM ──────────────────────────────────────────────────────────
+  private readonly _fsm = new RotationFSM();
+  /** Accumulated target orientation — pivot slerps toward this each frame. */
+  private readonly _targetQuaternion = new THREE.Quaternion();
+
   // ── Rotation hand overlay state (read by HandOverlay) ─────────────────────
   private _rotationHandDetected = false;
   private _zoomDirection: 'in' | 'out' | 'none' = 'none';
@@ -126,12 +131,14 @@ export class HandObjectManager {
   private _nearestAtomScreenDist = Infinity;
 
   // ── Reusable Three.js scratch objects (avoid per-frame allocations) ────────
-  private readonly _dampedQ  = new THREE.Quaternion();
   private readonly _worldPos = new THREE.Vector3();
   private readonly _ndc      = new THREE.Vector3();
   private readonly _raycaster = new THREE.Raycaster();
   private readonly _zeroPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   private readonly _planeHit  = new THREE.Vector3();
+  /** Scratch quaternions for camera-relative rotation transform (substep 4). */
+  private readonly _qCamScratch    = new THREE.Quaternion();
+  private readonly _qCamInvScratch = new THREE.Quaternion();
 
   // ── Frame timing ──────────────────────────────────────────────────────────
   private _lastTimestamp = -1;
@@ -281,26 +288,20 @@ export class HandObjectManager {
       }
     }
 
-    // Update gesture detectors (reset if hand not present)
+    // Update gesture detectors.
+    // Rotation detector: always update (empty arrays → graceful no-op; FSM handles reset timing).
+    // Grabber detector: reset immediately when hand is absent.
     this._rotationHandDetected = !!(rotLm && rotWl);
-    if (rotLm && rotWl) {
-      this._detectorRotation.update(rotLm, rotWl, elapsedMs);
-    } else {
-      this._detectorRotation.reset();
-      this._prevFistY     = null;
-      this._smoothedFistY = null;
-      this._zoomDirection = 'none';
-    }
+    this._detectorRotation.update(rotLm ?? [], rotWl ?? [], elapsedMs);
 
     this._grabberHandDetected = !!(grabLm && grabWl);
-
     if (grabLm && grabWl) {
       this._detectorGrabber.update(grabLm, grabWl, elapsedMs);
     } else {
       this._detectorGrabber.reset();
     }
 
-    this._processRotationHand();
+    this._processRotationHand(elapsedMs);
     this._processGrabberHand();
   }
 
@@ -308,7 +309,35 @@ export class HandObjectManager {
     this._swapHands = v;
     this._detectorRotation.reset();
     this._detectorGrabber.reset();
+    this._fsm.reset();
     this._prevFistY = null;
+    this._smoothedFistY = null;
+    this._zoomDirection = 'none';
+  }
+
+  /** Reset molecule orientation to identity. */
+  resetOrientation(): void {
+    this._targetQuaternion.identity();
+  }
+
+  /**
+   * Snap the molecule to a named view preset.
+   * The pivot slerps to the target over the next few frames.
+   */
+  setViewPreset(view: 'front' | 'side' | 'top'): void {
+    switch (view) {
+      case 'front':
+        this._targetQuaternion.set(0, 0, 0, 1);
+        break;
+      case 'side':
+        // 90° around Y: q = (0, sin(π/4), 0, cos(π/4))
+        this._targetQuaternion.set(0, Math.SQRT1_2, 0, Math.SQRT1_2);
+        break;
+      case 'top':
+        // -90° around X: q = (sin(-π/4), 0, 0, cos(π/4))
+        this._targetQuaternion.set(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
+        break;
+    }
   }
 
   /** Toggle Option D (simple mode): show all ghosts at once, direct pinch-to-place. */
@@ -346,6 +375,9 @@ export class HandObjectManager {
 
   /** True when the rotation hand is tracked this frame. */
   get rotationHandDetected(): boolean { return this._rotationHandDetected; }
+
+  /** Current rotation FSM state. */
+  get rotationState(): RotationState { return this._fsm.state; }
 
   /** True when the rotation hand is open (palm extended = rotating mode). */
   get rotationIsOpen(): boolean { return this._detectorRotation.isOpen; }
@@ -404,35 +436,43 @@ export class HandObjectManager {
 
   // ── Private: rotation / zoom hand ─────────────────────────────────────────
 
-  private _processRotationHand(): void {
+  private _processRotationHand(elapsedMs: number): void {
     const det = this._detectorRotation;
+    const delta = det.rotationDelta;
+    const theta = 2 * Math.acos(Math.min(1, Math.abs(delta.w)));
 
-    if (det.isOpen) {
-      this._prevFistY     = null;
-      this._smoothedFistY = null;
-      this._zoomDirection = 'none';
+    // ── Delegate FSM transitions ───────────────────────────────────────────────
+    this._fsm.update({
+      handDetected: this._rotationHandDetected,
+      isPinching: det.isPinching,
+      deltaAngle: theta,
+      elapsedMs,
+    });
 
-      // Apply a fraction of the rotation delta (damping reduces jitter).
-      // Skip deltas smaller than ROTATION_DEAD_ZONE to prevent drift when
-      // the hand is held still.
-      const delta = det.rotationDelta;
-      if (delta.w < ROTATION_DEAD_ZONE) {
-        // Slerp: identity → delta, factor = ROTATION_DAMPING
-        this._dampedQ.identity().slerp(delta, ROTATION_DAMPING);
-        this._pivotGroup.quaternion.multiply(this._dampedQ).normalize();
-      }
-    } else {
-      // Closed fist: vertical movement → scale.
-      // Low-pass filter the raw fist Y to reduce per-frame jitter before
-      // computing the delta.
+    // Reset GestureDetector when the FSM fully loses the hand
+    if (!this._rotationHandDetected && this._fsm.state === 'NO_HAND') {
+      det.reset();
+    }
+
+    // ── Phase 3: Rotation (pinch clutch active, delta above dead zone) ─────────
+    if (this._fsm.grabActive && theta >= ROTATION_CONFIG.minRotationAngle) {
+      // Camera-relative rotation: q_worldDelta = qCam * qDelta * qCam^-1
+      // With the current fixed camera (identity quaternion) this is a no-op,
+      // but correctly handles any future camera movement.
+      this._qCamScratch.copy(this._camera.quaternion);
+      this._qCamInvScratch.copy(this._camera.quaternion).invert();
+      const qWorldDelta = this._qCamScratch.multiply(delta).multiply(this._qCamInvScratch).normalize();
+      this._targetQuaternion.premultiply(qWorldDelta).normalize();
+    }
+
+    // ── Phase 4: Zoom (READY + closed fist, no pinch) ─────────────────────────
+    if (this._fsm.state === 'READY' && !det.isOpen) {
       const rawY = det.indexTip.y;
       if (rawY > 0) {
         this._smoothedFistY = this._smoothedFistY === null
           ? rawY
           : this._smoothedFistY + (rawY - this._smoothedFistY) * ZOOM_SMOOTH;
-
         if (this._prevFistY !== null) {
-          // Moving fist up (y decreasing) → zoom in; down → zoom out
           const yDelta = this._prevFistY - this._smoothedFistY;
           const multiplier = 1 + yDelta * ZOOM_SENSITIVITY;
           this._pivotScale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, this._pivotScale * multiplier));
@@ -446,7 +486,14 @@ export class HandObjectManager {
       } else {
         this._zoomDirection = 'none';
       }
+    } else {
+      this._prevFistY = null;
+      this._smoothedFistY = null;
+      this._zoomDirection = 'none';
     }
+
+    // ── Phase 5: Smoothing ────────────────────────────────────────────────────
+    this._pivotGroup.quaternion.slerp(this._targetQuaternion, ROTATION_CONFIG.smoothingAlpha).normalize();
   }
 
   // ── Private: grabber state machine ────────────────────────────────────────
