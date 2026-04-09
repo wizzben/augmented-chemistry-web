@@ -20,8 +20,7 @@ The app recognises completed molecules against a library of 100+ compounds and s
 npm install
 npm run dev        # dev server at localhost:5173
 npm run build      # production build → dist/
-npm run test       # 767 unit tests (~1 s)
-```
+ ```
 
 Requires a modern browser with WebGL. Markerless AR mode requires camera access (HTTPS or localhost). AR mode additionally requires the ARToolKit marker files in `public/patterns/`.
 

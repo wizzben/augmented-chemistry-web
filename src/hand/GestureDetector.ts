@@ -2,11 +2,12 @@ import * as THREE from 'three';
 import { type NormalizedLandmark, type Landmark } from '@mediapipe/tasks-vision';
 import { HAND_LANDMARKS } from './HandTracker';
 
-// ── Pinch thresholds (normalized screen-space distance) ──────────────────────
-const PINCH_ON_THRESHOLD  = 0.055; // thumb tip to index tip: pinch activates (widened from 0.04)
-const PINCH_OFF_THRESHOLD = 0.075; // hysteresis: pinch releases above this (~0.02 gap)
-const PINCH_COOLDOWN_MS   = 200;   // minimum ms between triggered pinch events (reduced from 300)
-/** Consecutive frames dist must stay below PINCH_ON_THRESHOLD before activating. */
+// ── Pinch thresholds (scale-invariant ratio: thumbIndexDist / palmWidth) ─────
+// palmWidth = ||indexMCP − pinkyMCP|| in normalized screen space.
+const PINCH_ON_THRESHOLD  = 0.4;  // ratio below this → pinch activates
+const PINCH_OFF_THRESHOLD = 0.6;  // ratio above this → pinch releases (hysteresis gap = 0.2)
+const PINCH_COOLDOWN_MS   = 200;  // minimum ms between triggered pinch events
+/** Consecutive frames ratio must stay below PINCH_ON_THRESHOLD before activating. */
 const PINCH_HOLD_FRAMES   = 3;
 
 // ── Open/closed hand thresholds (avg fingertip-to-wrist distance) ─────────────
@@ -73,6 +74,7 @@ export class GestureDetector {
   private _v0 = new THREE.Vector3();
   private _v1 = new THREE.Vector3();
   private _v2 = new THREE.Vector3();
+  private _v3 = new THREE.Vector3();
   private _normal = new THREE.Vector3();
   private _forward = new THREE.Vector3();
   private _currentQ = new THREE.Quaternion();
@@ -130,22 +132,33 @@ export class GestureDetector {
   private _updatePinch(lm: NormalizedLandmark[], elapsedMs: number): void {
     this._timeSinceLastPinchMs += elapsedMs;
 
+    // Scale-invariant pinch ratio: thumbIndexDist / palmWidth.
+    // palmWidth normalises for hand size and camera distance.
+    const indexMCP = lm[HAND_LANDMARKS.INDEX_MCP];
+    const pinkyMCP = lm[HAND_LANDMARKS.PINKY_MCP];
+    const pwdx = indexMCP.x - pinkyMCP.x;
+    const pwdy = indexMCP.y - pinkyMCP.y;
+    const palmWidth = Math.sqrt(pwdx * pwdx + pwdy * pwdy);
+
+    // Guard: degenerate pose (hand nearly edge-on) — skip update this frame.
+    if (palmWidth < 0.001) return;
+
     const thumb = lm[HAND_LANDMARKS.THUMB_TIP];
     const index = lm[HAND_LANDMARKS.INDEX_TIP];
     const dx = thumb.x - index.x;
     const dy = thumb.y - index.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    const ratio = Math.sqrt(dx * dx + dy * dy) / palmWidth;
 
     // Continuous progress for the arc indicator — independent of hold logic.
     this.pinchProgress = 1 - Math.min(1, Math.max(0,
-      (dist - PINCH_ON_THRESHOLD) / (PINCH_OFF_THRESHOLD - PINCH_ON_THRESHOLD),
+      (ratio - PINCH_ON_THRESHOLD) / (PINCH_OFF_THRESHOLD - PINCH_ON_THRESHOLD),
     ));
 
     // Confirmation hold: count consecutive frames below the on-threshold.
-    // Resets the instant dist rises back above it (even into the hysteresis
+    // Resets the instant ratio rises back above it (even into the hysteresis
     // zone) so jitter can't accumulate across a brief gap. isPinching uses
     // the standard hysteresis for the *release* direction only.
-    if (dist < PINCH_ON_THRESHOLD) {
+    if (ratio < PINCH_ON_THRESHOLD) {
       this._pinchHoldFrames++;
     } else {
       this._pinchHoldFrames = 0;
@@ -155,7 +168,7 @@ export class GestureDetector {
 
     if (!this.isPinching && this._pinchHoldFrames >= PINCH_HOLD_FRAMES) {
       this.isPinching = true;
-    } else if (this.isPinching && dist > PINCH_OFF_THRESHOLD) {
+    } else if (this.isPinching && ratio > PINCH_OFF_THRESHOLD) {
       this.isPinching = false;
     }
 
@@ -190,28 +203,32 @@ export class GestureDetector {
   }
 
   private _updateRotationDelta(wl: Landmark[]): void {
-    // Three points on the palm define its orientation:
-    //   wrist (0), index MCP (5), pinky MCP (17)
-    const wrist = wl[HAND_LANDMARKS.WRIST];
-    const indexMCP = wl[HAND_LANDMARKS.INDEX_MCP];
-    const pinkyMCP = wl[HAND_LANDMARKS.PINKY_MCP];
+    // Four landmarks define the palm orientation:
+    //   wrist (0), index MCP (5), middle MCP (9), pinky MCP (17)
+    const wrist     = wl[HAND_LANDMARKS.WRIST];
+    const indexMCP  = wl[HAND_LANDMARKS.INDEX_MCP];
+    const middleMCP = wl[HAND_LANDMARKS.MIDDLE_MCP];
+    const pinkyMCP  = wl[HAND_LANDMARKS.PINKY_MCP];
 
-    this._v0.set(wrist.x, wrist.y, wrist.z);
-    this._v1.set(indexMCP.x, indexMCP.y, indexMCP.z);
-    this._v2.set(pinkyMCP.x, pinkyMCP.y, pinkyMCP.z);
+    this._v0.set(wrist.x,     wrist.y,     wrist.z);
+    this._v1.set(indexMCP.x,  indexMCP.y,  indexMCP.z);
+    this._v2.set(middleMCP.x, middleMCP.y, middleMCP.z);
+    this._v3.set(pinkyMCP.x,  pinkyMCP.y,  pinkyMCP.z);
 
-    // Palm normal = (indexMCP - wrist) × (pinkyMCP - wrist)
-    const edge1 = this._v1.clone().sub(this._v0);
-    const edge2 = this._v2.clone().sub(this._v0);
-    this._normal.crossVectors(edge1, edge2).normalize();
-
-    // Palm forward = direction from wrist toward index MCP
-    this._forward.copy(edge1).normalize();
-
-    // Build rotation matrix: X = forward, Z = normal, Y = Z × X
+    // x = normalize(indexMCP - pinkyMCP)
+    this._forward.subVectors(this._v1, this._v3).normalize();
     const xAxis = this._forward;
-    const zAxis = this._normal;
-    const yAxis = this._v0.clone().crossVectors(zAxis, xAxis).normalize();
+
+    // y' = normalize(middleMCP - wrist)
+    this._normal.subVectors(this._v2, this._v0).normalize();
+
+    // z = normalize(cross(x, y'))  — reuse _v0 (wrist pos no longer needed)
+    this._v0.crossVectors(xAxis, this._normal).normalize();
+    const zAxis = this._v0;
+
+    // y = normalize(cross(z, x))  — reuse _v1 (indexMCP pos no longer needed)
+    this._v1.crossVectors(zAxis, xAxis).normalize();
+    const yAxis = this._v1;
 
     this._mat.makeBasis(xAxis, yAxis, zAxis);
     this._currentQ.setFromRotationMatrix(this._mat);

@@ -19,7 +19,7 @@
 
 import type { NormalizedLandmark } from '@mediapipe/tasks-vision';
 import type { HandFrame } from './HandTracker';
-import type { GrabberState } from './HandObjectManager';
+import type { GrabberState, RotationState } from './HandObjectManager';
 
 // MediaPipe standard hand connections (landmark index pairs).
 // https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker#models
@@ -100,6 +100,7 @@ export class HandOverlay {
    * @param opts.rotationIsOpen        - True when the rotation hand is open (rotating mode)
    * @param opts.rotationSignedAngle   - Signed rotation magnitude in radians this frame
    * @param opts.zoomDirection         - 'in' | 'out' | 'none' — active zoom direction
+   * @param opts.rotationState         - Current rotation FSM state from HandObjectManager
    */
   update(
     frame: HandFrame,
@@ -114,6 +115,7 @@ export class HandOverlay {
       rotationIsOpen?: boolean;
       rotationSignedAngle?: number;
       zoomDirection?: 'in' | 'out' | 'none';
+      rotationState?: RotationState;
     },
   ): void {
     this.clear();
@@ -132,6 +134,7 @@ export class HandOverlay {
     const rotIsOpen          = opts?.rotationIsOpen        ?? true;
     const rotAngle           = opts?.rotationSignedAngle   ?? 0;
     const zoomDir            = opts?.zoomDirection         ?? 'none';
+    const rotationState      = opts?.rotationState;
 
     // Manage flash countdown: a pinch trigger starts a 2-frame green flash.
     if (pinchTriggered) {
@@ -159,12 +162,15 @@ export class HandOverlay {
         if (firstAtomMode) this._drawFirstAtomHint(lm, w, h);
       } else {
         rotationHandSeen = true;
-        this._drawRotationIndicator(lm, w, h, rotIsOpen, rotAngle, zoomDir);
+        this._drawRotationIndicator(lm, w, h, rotIsOpen, rotAngle, zoomDir, rotationState);
       }
     }
 
     this._drawGrabberHint(h, nowMs, grabberHandSeen, swapHands);
     this._drawRotationHint(w, h, nowMs, rotationHandSeen, swapHands);
+    if (rotationState !== undefined && rotationState !== 'NO_HAND') {
+      this._drawRotationStateLabel(rotationState, w, h, swapHands);
+    }
   }
 
   clear(): void {
@@ -236,15 +242,16 @@ export class HandOverlay {
     isOpen: boolean,
     signedAngle: number,
     zoomDir: 'in' | 'out' | 'none',
+    rotationState: RotationState | undefined,
   ): void {
     const ctx = this._ctx;
     // Anchor near the wrist (landmark 0)
     const [wx, wy] = this._px(lm[0], w, h);
 
-    if (isOpen) {
-      // ── Rotation arc ────────────────────────────────────────────────────────
+    if (rotationState === 'ROTATING') {
+      // ── Rotation arc (only when angle is above visible threshold) ───────────
       const mag = Math.abs(signedAngle);
-      if (mag < 0.005) return; // below dead zone — nothing to show
+      if (mag < 0.005) return;
 
       const radius     = 38;
       const sweep      = Math.min(mag * 14, Math.PI * 1.6); // scale for visibility
@@ -277,8 +284,8 @@ export class HandOverlay {
       ctx.fill();
       ctx.restore();
       ctx.globalAlpha = 1;
-    } else {
-      // ── Zoom arrows ─────────────────────────────────────────────────────────
+    } else if (rotationState === 'READY' && !isOpen) {
+      // ── Zoom arrows (READY + closed fist) ───────────────────────────────────
       const arrowH = 22;
       const arrowW = 10;
       const gap    = 8;           // vertical gap between the two arrows
@@ -318,7 +325,19 @@ export class HandOverlay {
       ctx.globalAlpha  = 1;
       ctx.textAlign    = 'left';
       ctx.textBaseline = 'alphabetic';
+    } else if (rotationState === 'READY' && isOpen) {
+      // ── Subtle ready ring (READY + open palm) ───────────────────────────────
+      ctx.strokeStyle = COLOR_ROTATION_SKELETON;
+      ctx.lineWidth   = 1.5;
+      ctx.globalAlpha = 0.35;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(wx, wy, 22, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
     }
+    // All other states: no indicator
   }
 
   /**
@@ -406,6 +425,51 @@ export class HandOverlay {
     ctx.fill();
 
     ctx.fillStyle = COLOR_ROTATION_SKELETON;
+    ctx.fillText(text, rx - pad / 2, ry);
+    ctx.restore();
+  }
+
+  /**
+   * Draw a persistent rotation FSM state label in the top-right corner.
+   * Only called when rotationState is not NO_HAND.
+   */
+  private _drawRotationStateLabel(
+    rotationState: RotationState,
+    w: number,
+    _h: number,
+    swapHands: boolean,
+  ): void {
+    const rotHand = swapHands ? 'Left' : 'Right';
+    const labels: Record<RotationState, string> = {
+      NO_HAND:       'No hand detected',
+      HAND_DETECTED: `${rotHand} hand detected`,
+      READY:         'Ready to rotate',
+      GRABBED:       'Grab active',
+      ROTATING:      'Rotating',
+      RELEASED:      'Released',
+      TRACKING_LOST: 'Tracking lost',
+    };
+    const text = labels[rotationState];
+
+    const ctx = this._ctx;
+    ctx.save();
+    ctx.font         = '12px sans-serif';
+    ctx.textAlign    = 'right';
+    ctx.textBaseline = 'middle';
+
+    const pad = 10;
+    const tw  = ctx.measureText(text).width;
+    const rx  = w - pad;
+    const ry  = pad + 14;
+
+    ctx.fillStyle   = 'rgba(0,0,0,0.50)';
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.roundRect(rx - tw - pad * 2, ry - 10, tw + pad * 2, 20, 4);
+    ctx.fill();
+
+    ctx.fillStyle   = COLOR_ROTATION_SKELETON;
+    ctx.globalAlpha = 1.0;
     ctx.fillText(text, rx - pad / 2, ry);
     ctx.restore();
   }

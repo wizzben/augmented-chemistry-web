@@ -1,0 +1,8 @@
+I want a new markerless mode. In the markerless mode, the MediaPipe Hand Landmarker library is used to replace the cube and the "grabber". The markerless mode does not use ARToolkitX at all. The right hand will be used for molecule rotation, whereas the left hand is used as the "grabber". Individual atoms are visualized from top to bottom on the left side of the screen (*), so I can grab and move them to the molecule.
+Here are the specific movements for both hands:
+Right Hand: Rotation and zoom / resizing of the molecule (depending on open or closed hand). The position of the hand doesn't influence the position of the molecule on the screen. The molecule center is fixed at the center of the screen.
+Left Hand: Positioning of hand next to the atom to select a specific atom (atom is highlighted when it is selected). A "tap" of the pointer finger with the thumb to confirm the selection of the highlighted atom. Moving the atom next to the suitable "dock" at the molecule where the next bond will be made. Another "tap" of the pointer finger with the thumb to confirm the bond.
+Also, in the markerless mode, it should be possible to preload one of the molecules out of the database from the right sidebar. The video image from the camera should be switched off in markerless mode.
+Also, there needs to be a toggle so I can switch from left to right hand mode and vice versa.
+
+(*) The top to bottom list of the atoms should be at the right size for me to grab an atom with my fingers.

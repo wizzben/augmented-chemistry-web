@@ -129,6 +129,10 @@ const arBtn           = document.getElementById('ar-btn')           as HTMLButto
 const markerlessBtn   = document.getElementById('markerless-btn')   as HTMLButtonElement;
 const swapHandsBtn    = document.getElementById('swap-hands-btn')   as HTMLButtonElement;
 const simpleModeBtn   = document.getElementById('simple-mode-btn')  as HTMLButtonElement;
+const viewResetBtn    = document.getElementById('view-reset-btn')   as HTMLButtonElement;
+const viewFrontBtn    = document.getElementById('view-front-btn')   as HTMLButtonElement;
+const viewSideBtn     = document.getElementById('view-side-btn')    as HTMLButtonElement;
+const viewTopBtn      = document.getElementById('view-top-btn')     as HTMLButtonElement;
 const paletteGrid     = document.getElementById('element-grid')!;
 const atomGrabListEl  = document.getElementById('atom-grab-list')!;
 const handOverlayCanvas = document.getElementById('hand-overlay')   as HTMLCanvasElement;
@@ -246,6 +250,7 @@ let activeHandObjectManager: {
   readonly rotationIsOpen: boolean;
   readonly rotationSignedAngleRad: number;
   readonly zoomDirection: 'in' | 'out' | 'none';
+  readonly rotationState: import('@/hand/HandObjectManager').RotationState;
 } | null = null;
 let activeGhostRenderer: { dispose(): void } | null = null;
 let markerlessModeActive = false;
@@ -288,8 +293,12 @@ markerlessBtn?.addEventListener('click', async () => {
     paletteGrid.style.display = '';
     requestAnimationFrame(() => { paletteGrid.style.opacity = '1'; });
 
-    swapHandsBtn.style.display = 'none';
+    swapHandsBtn.style.display  = 'none';
     simpleModeBtn.style.display = 'none';
+    viewResetBtn.style.display  = 'none';
+    viewFrontBtn.style.display  = 'none';
+    viewSideBtn.style.display   = 'none';
+    viewTopBtn.style.display    = 'none';
     arBtn.disabled = false;
     markerlessBtn.textContent = 'Markerless';
     infoBar.textContent = 'Select an element and click the canvas to start building.';
@@ -363,6 +372,10 @@ markerlessBtn?.addEventListener('click', async () => {
     cachedHandOverlay.show();
     swapHandsBtn.style.display   = '';
     simpleModeBtn.style.display  = '';
+    viewResetBtn.style.display   = '';
+    viewFrontBtn.style.display   = '';
+    viewSideBtn.style.display    = '';
+    viewTopBtn.style.display     = '';
 
     markerlessBtn.disabled = false;
     markerlessBtn.textContent = 'Stop Markerless';
@@ -386,19 +399,27 @@ markerlessBtn?.addEventListener('click', async () => {
         rotationIsOpen:        handObjectManager.rotationIsOpen,
         rotationSignedAngle:   handObjectManager.rotationSignedAngleRad,
         zoomDirection:         handObjectManager.zoomDirection,
+        rotationState:         handObjectManager.rotationState,
       });
 
       // Step-by-step guidance: tell the user what to do next.
       const gSeen        = handObjectManager.grabberHandDetected;
       const rSeen        = handObjectManager.rotationHandDetected;
       const grabberHand  = swapHandsActive ? 'right' : 'left';
+      const rotHand      = swapHandsActive ? 'left' : 'right';
       const gs           = handObjectManager.grabberState;
+      const rotState     = handObjectManager.rotationState;
       let guidance: string;
 
       if (!gSeen && !rSeen) {
         guidance = 'Show your hands to the camera';
       } else if (!gSeen) {
-        guidance = `Show ${grabberHand} hand to grab atoms`;
+        // Only rotation hand visible — give rotation-specific guidance
+        if (rotState === 'READY') {
+          guidance = `${rotHand} hand ready — pinch to rotate, fist to zoom`;
+        } else {
+          guidance = `Show ${grabberHand} hand to grab atoms`;
+        }
       } else if (gs === 'IDLE') {
         guidance = 'Move finger over element list to pick';
       } else if (gs === 'BROWSING') {
@@ -431,7 +452,11 @@ markerlessBtn?.addEventListener('click', async () => {
     // Restore palette
     paletteGrid.style.display = '';
     requestAnimationFrame(() => { paletteGrid.style.opacity = '1'; });
-    swapHandsBtn.style.display = 'none';
+    swapHandsBtn.style.display  = 'none';
+    viewResetBtn.style.display  = 'none';
+    viewFrontBtn.style.display  = 'none';
+    viewSideBtn.style.display   = 'none';
+    viewTopBtn.style.display    = 'none';
     arBtn.disabled = false;
     markerlessBtn.disabled = false;
     markerlessBtn.textContent = 'Markerless';
@@ -451,6 +476,11 @@ simpleModeBtn?.addEventListener('click', () => {
   activeHandObjectManager?.setSimpleMode(simpleModeActive);
   simpleModeBtn.textContent = simpleModeActive ? 'Simple Mode: On' : 'Simple Mode: Off';
 });
+
+viewResetBtn?.addEventListener('click', () => { activeHandObjectManager?.resetOrientation(); });
+viewFrontBtn?.addEventListener('click', () => { activeHandObjectManager?.setViewPreset('front'); });
+viewSideBtn?.addEventListener('click',  () => { activeHandObjectManager?.setViewPreset('side'); });
+viewTopBtn?.addEventListener('click',   () => { activeHandObjectManager?.setViewPreset('top'); });
 
 // ─── Library panel (view-only) ────────────────────────────────────────────
 const libraryContainer = document.getElementById('library-list')!;

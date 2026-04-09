@@ -9,6 +9,19 @@ function flatLandmarks(cx = 0.5, cy = 0.5): NormalizedLandmark[] {
   return Array.from({ length: 21 }, () => ({ x: cx, y: cy, z: 0, visibility: 1 }));
 }
 
+/**
+ * Spread indexMCP (5) and pinkyMCP (17) so palmWidth = 0.4.
+ * With this base, ratio = thumbIndexDist / 0.4.
+ *   ratio < 0.4 (pinch ON)  ↔  thumbIndexDist < 0.16
+ *   ratio > 0.6 (pinch OFF) ↔  thumbIndexDist > 0.24
+ */
+function withPalmSpread(base: NormalizedLandmark[]): NormalizedLandmark[] {
+  return withOverrides(base, {
+    5:  { x: 0.3, y: 0.5 }, // indexMCP
+    17: { x: 0.7, y: 0.5 }, // pinkyMCP  → palmWidth = 0.4
+  });
+}
+
 /** Build a flat array of 21 world Landmarks at (0,0,0). */
 function flatWorldLandmarks(): Landmark[] {
   return Array.from({ length: 21 }, () => ({ x: 0, y: 0, z: 0, visibility: 1 }));
@@ -50,13 +63,13 @@ describe('GestureDetector', () => {
     });
 
     it('activates when thumb-index distance falls below threshold', () => {
-      // landmark 4 = thumb tip, landmark 8 = index tip
-      // Place them very close (dist = 0.01, well below 0.055 ON threshold).
+      // palmWidth = 0.4 (indexMCP at x=0.3, pinkyMCP at x=0.7).
+      // thumbIndexDist = 0.04 → ratio = 0.04/0.4 = 0.10, well below ON(0.4).
       // Hold requirement: 3 consecutive frames below threshold before activating.
-      const lm = withOverrides(flatLandmarks(), {
+      const lm = withPalmSpread(withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.51, y: 0.50 }, // dist = 0.01
-      });
+        8: { x: 0.54, y: 0.50 }, // dist = 0.04 → ratio = 0.10
+      }));
       detector.update(lm, flatWorldLandmarks(), 16);
       detector.update(lm, flatWorldLandmarks(), 16);
       detector.update(lm, flatWorldLandmarks(), 16);
@@ -64,10 +77,10 @@ describe('GestureDetector', () => {
     });
 
     it('fires pinchTriggered on the frame the hold is confirmed', () => {
-      const lm = withOverrides(flatLandmarks(), {
+      const lm = withPalmSpread(withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.51, y: 0.50 },
-      });
+        8: { x: 0.54, y: 0.50 }, // ratio = 0.10
+      }));
       // Cooldown starts pre-expired; trigger fires on the 3rd consecutive frame.
       detector.update(lm, flatWorldLandmarks(), 16);
       detector.update(lm, flatWorldLandmarks(), 16);
@@ -76,10 +89,10 @@ describe('GestureDetector', () => {
     });
 
     it('pinchTriggered is false on subsequent frames of the same pinch', () => {
-      const lmPinch = withOverrides(flatLandmarks(), {
+      const lmPinch = withPalmSpread(withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.51, y: 0.50 },
-      });
+        8: { x: 0.54, y: 0.50 }, // ratio = 0.10
+      }));
       detector.update(lmPinch, flatWorldLandmarks(), 16);
       detector.update(lmPinch, flatWorldLandmarks(), 16);
       detector.update(lmPinch, flatWorldLandmarks(), 16);
@@ -91,14 +104,14 @@ describe('GestureDetector', () => {
     });
 
     it('does not trigger again within cooldown period', () => {
-      const lmPinch = withOverrides(flatLandmarks(), {
+      const lmPinch = withPalmSpread(withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.51, y: 0.50 },
-      });
-      const lmRelease = withOverrides(flatLandmarks(), {
+        8: { x: 0.54, y: 0.50 }, // ratio = 0.10
+      }));
+      const lmRelease = withPalmSpread(withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.60, y: 0.50 }, // dist = 0.10, above 0.075 release threshold
-      });
+        8: { x: 0.76, y: 0.50 }, // dist = 0.26 → ratio = 0.65, above OFF(0.6)
+      }));
 
       // First pinch — 3 frames to confirm hold
       detector.update(lmPinch, flatWorldLandmarks(), 16);
@@ -119,14 +132,14 @@ describe('GestureDetector', () => {
     });
 
     it('triggers again after cooldown expires', () => {
-      const lmPinch = withOverrides(flatLandmarks(), {
+      const lmPinch = withPalmSpread(withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.51, y: 0.50 },
-      });
-      const lmRelease = withOverrides(flatLandmarks(), {
+        8: { x: 0.54, y: 0.50 }, // ratio = 0.10
+      }));
+      const lmRelease = withPalmSpread(withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.60, y: 0.50 },
-      });
+        8: { x: 0.76, y: 0.50 }, // ratio = 0.65
+      }));
 
       // First pinch
       detector.update(lmPinch, flatWorldLandmarks(), 16);
@@ -144,19 +157,20 @@ describe('GestureDetector', () => {
       expect(detector.pinchTriggered).toBe(true);
     });
 
-    it('deactivates with hysteresis (only releases above 0.075)', () => {
-      const lmPinch = withOverrides(flatLandmarks(), {
+    it('deactivates with hysteresis (only releases above ratio 0.6)', () => {
+      // palmWidth = 0.4 throughout.
+      const lmPinch = withPalmSpread(withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.51, y: 0.50 }, // dist = 0.01, below ON threshold
-      });
-      const lmMid = withOverrides(flatLandmarks(), {
+        8: { x: 0.54, y: 0.50 }, // dist = 0.04 → ratio = 0.10, below ON(0.4)
+      }));
+      const lmMid = withPalmSpread(withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.565, y: 0.50 }, // dist = 0.065 — between ON(0.055) and OFF(0.075)
-      });
-      const lmFar = withOverrides(flatLandmarks(), {
+        8: { x: 0.70, y: 0.50 }, // dist = 0.20 → ratio = 0.50, in band [0.4, 0.6]
+      }));
+      const lmFar = withPalmSpread(withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.585, y: 0.50 }, // dist = 0.085 — above OFF threshold (0.075)
-      });
+        8: { x: 0.76, y: 0.50 }, // dist = 0.26 → ratio = 0.65, above OFF(0.6)
+      }));
 
       // Activate with 3-frame hold
       detector.update(lmPinch, flatWorldLandmarks(), 16);
@@ -164,11 +178,11 @@ describe('GestureDetector', () => {
       detector.update(lmPinch, flatWorldLandmarks(), 16);
       expect(detector.isPinching).toBe(true);
 
-      // Distance in hysteresis band — hold counter resets but isPinching stays
+      // Ratio in hysteresis band — hold counter resets but isPinching stays
       detector.update(lmMid, flatWorldLandmarks(), 16);
       expect(detector.isPinching).toBe(true);
 
-      // Distance above release threshold — releases
+      // Ratio above release threshold — releases
       detector.update(lmFar, flatWorldLandmarks(), 16);
       expect(detector.isPinching).toBe(false);
     });
@@ -236,11 +250,12 @@ describe('GestureDetector', () => {
   describe('rotationDelta', () => {
     it('is identity quaternion on the first frame', () => {
       // Build minimal world landmarks: wrist at origin, index MCP along X,
-      // pinky MCP along Y so the palm is well-defined.
+      // middle MCP at diagonal, pinky MCP along Y so the palm is well-defined.
       const wl = withWorldOverrides(flatWorldLandmarks(), {
-        0:  { x: 0, y: 0, z: 0 },  // wrist
-        5:  { x: 1, y: 0, z: 0 },  // index MCP
-        17: { x: 0, y: 1, z: 0 },  // pinky MCP
+        0:  { x: 0,   y: 0,   z: 0 },  // wrist
+        5:  { x: 1,   y: 0,   z: 0 },  // index MCP
+        9:  { x: 0.5, y: 0.5, z: 0 },  // middle MCP
+        17: { x: 0,   y: 1,   z: 0 },  // pinky MCP
       });
       detector.update(flatLandmarks(), wl, 16);
       const { x, y, z, w } = detector.rotationDelta;
@@ -253,17 +268,19 @@ describe('GestureDetector', () => {
     it('returns a non-identity delta when the palm rotates between frames', () => {
       // Frame 1: palm in standard orientation
       const wl1 = withWorldOverrides(flatWorldLandmarks(), {
-        0:  { x: 0, y: 0, z: 0 },
-        5:  { x: 1, y: 0, z: 0 },
-        17: { x: 0, y: 1, z: 0 },
+        0:  { x: 0,    y: 0,   z: 0 },
+        5:  { x: 1,    y: 0,   z: 0 },
+        9:  { x: 0.5,  y: 0.5, z: 0 },  // middle MCP
+        17: { x: 0,    y: 1,   z: 0 },
       });
       detector.update(flatLandmarks(), wl1, 16);
 
-      // Frame 2: palm rotated 90° around Z (index MCP now points along Y)
+      // Frame 2: palm rotated 90° around Z (all landmarks rotated by same amount)
       const wl2 = withWorldOverrides(flatWorldLandmarks(), {
-        0:  { x: 0, y: 0, z: 0 },
-        5:  { x: 0, y: 1, z: 0 },
-        17: { x: -1, y: 0, z: 0 },
+        0:  { x: 0,    y: 0,   z: 0 },
+        5:  { x: 0,    y: 1,   z: 0 },
+        9:  { x: -0.5, y: 0.5, z: 0 },  // middle MCP rotated 90° around Z
+        17: { x: -1,   y: 0,   z: 0 },
       });
       detector.update(flatLandmarks(), wl2, 16);
 
@@ -285,9 +302,10 @@ describe('GestureDetector', () => {
     it('resets rotation delta when landmarks are missing', () => {
       // Establish a previous quaternion
       const wl = withWorldOverrides(flatWorldLandmarks(), {
-        0:  { x: 0, y: 0, z: 0 },
-        5:  { x: 1, y: 0, z: 0 },
-        17: { x: 0, y: 1, z: 0 },
+        0:  { x: 0,   y: 0,   z: 0 },
+        5:  { x: 1,   y: 0,   z: 0 },
+        9:  { x: 0.5, y: 0.5, z: 0 },
+        17: { x: 0,   y: 1,   z: 0 },
       });
       detector.update(flatLandmarks(), wl, 16);
 
@@ -305,10 +323,10 @@ describe('GestureDetector', () => {
 
   describe('reset()', () => {
     it('clears all state', () => {
-      const lmPinch = withOverrides(flatLandmarks(), {
+      const lmPinch = withPalmSpread(withOverrides(flatLandmarks(), {
         4: { x: 0.50, y: 0.50 },
-        8: { x: 0.51, y: 0.50 },
-      });
+        8: { x: 0.54, y: 0.50 }, // ratio = 0.10
+      }));
       // Three frames to satisfy hold requirement
       detector.update(lmPinch, flatWorldLandmarks(), 16);
       detector.update(lmPinch, flatWorldLandmarks(), 16);
