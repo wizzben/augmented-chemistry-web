@@ -162,10 +162,12 @@ export class Cube {
     // Extract position from raw marker matrix before applying cube transform
     this.position.set(me[12], me[13], me[14]);
 
-    // newestMatrix = AC_CUBE_TRANSFORM[masterFace] * masterPose.matrix
+    // newestMatrix = masterPose.matrix * AC_CUBE_TRANSFORM[masterFace]
+    // The original C code's achlp_matrix44_02multiply(A,B,R) computes R=B*A
+    // in column-major, so the pose is pre-multiplied by the cube correction.
     const newestMatrix = new THREE.Matrix4()
-      .copy(AC_CUBE_TRANSFORM[masterFace])
-      .multiply(masterPose.matrix);
+      .copy(masterPose.matrix)
+      .multiply(AC_CUBE_TRANSFORM[masterFace]);
 
     // Zero the translation — rotation only
     newestMatrix.elements[12] = 0;
