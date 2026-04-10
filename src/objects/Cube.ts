@@ -27,6 +27,11 @@ export { AC_CUBE_TRANSFORM };
 
 const SLERP_FRICTION = 0.4;   // aco_cube.c:118
 const RAD_45 = Math.PI / 4;   // aco_cube.c:58
+const DRAG_THRESHOLD_PX = 5;
+const MOUSE_SENSITIVITY = 0.005; // radians per pixel
+
+const _AXIS_X = new THREE.Vector3(1, 0, 0);
+const _AXIS_Y = new THREE.Vector3(0, 1, 0);
 
 /** Logical names for the six cube face markers, face index 0–5. */
 const CUBE_MARKER_NAMES = [
@@ -54,6 +59,58 @@ export class Cube {
 
   private readonly _newestQuat = new THREE.Quaternion();
 
+  // ── Mouse fallback rotation (Step 7b) ─────────────────────────────────────
+  private _canvas: HTMLCanvasElement | null = null;
+  private _dragging = false;
+  private _dragMoved = false;
+  private _dragStartX = 0;
+  private _dragStartY = 0;
+  private readonly _mouseTargetQuat = new THREE.Quaternion();
+
+  enableMouseFallback(canvas: HTMLCanvasElement): void {
+    this._canvas = canvas;
+    this._mouseTargetQuat.copy(this.rotation);
+    canvas.addEventListener('mousedown', this._onMouseDown);
+    canvas.addEventListener('mousemove', this._onMouseMove);
+    canvas.addEventListener('mouseup', this._onMouseUp);
+  }
+
+  disableMouseFallback(): void {
+    if (!this._canvas) return;
+    this._canvas.removeEventListener('mousedown', this._onMouseDown);
+    this._canvas.removeEventListener('mousemove', this._onMouseMove);
+    this._canvas.removeEventListener('mouseup', this._onMouseUp);
+    this._canvas = null;
+    this._dragging = false;
+  }
+
+  private readonly _onMouseDown = (e: MouseEvent): void => {
+    if (e.button !== 0) return;
+    this._dragging = true;
+    this._dragMoved = false;
+    this._dragStartX = e.clientX;
+    this._dragStartY = e.clientY;
+  };
+
+  private readonly _onMouseMove = (e: MouseEvent): void => {
+    if (!this._dragging || this.visible) return; // only when no physical cube
+    const dx = e.clientX - this._dragStartX;
+    const dy = e.clientY - this._dragStartY;
+    if (!this._dragMoved) {
+      if (Math.abs(dx) + Math.abs(dy) < DRAG_THRESHOLD_PX) return;
+      this._dragMoved = true;
+    }
+    const qY = new THREE.Quaternion().setFromAxisAngle(_AXIS_Y, dx * MOUSE_SENSITIVITY);
+    const qX = new THREE.Quaternion().setFromAxisAngle(_AXIS_X, dy * MOUSE_SENSITIVITY);
+    this._mouseTargetQuat.premultiply(qY).multiply(qX).normalize();
+    this._dragStartX = e.clientX;
+    this._dragStartY = e.clientY;
+  };
+
+  private readonly _onMouseUp = (): void => {
+    this._dragging = false;
+  };
+
   /** aco_cube_03refreshState — call once per frame. */
   refreshState(markerState: MarkerState): void {
     // Collect visible face indices (aco_cube.c:192-207)
@@ -67,6 +124,8 @@ export class Cube {
     if (visibleFaces.length === 0) {
       this.visible = false;
       if (this.posIsValid > 0) this.posIsValid--;
+      // Apply mouse-driven rotation when no physical cube is detected
+      this.rotation.slerp(this._mouseTargetQuat, SLERP_FRICTION);
       return;
     }
 
@@ -116,6 +175,8 @@ export class Cube {
     // SLERP smoothing (aco_cube.c:244-256)
     this._newestQuat.setFromRotationMatrix(newestMatrix);
     this.rotation.slerp(this._newestQuat, SLERP_FRICTION);
+    // Keep mouse target in sync so fallback starts from current physical orientation
+    this._mouseTargetQuat.copy(this.rotation);
 
     // Compose final matrix from smoothed rotation + position
     this.matrix.compose(this.position, this.rotation, _UNIT_SCALE);

@@ -100,6 +100,8 @@ if (sceneManager) {
 const paletteContainer = document.getElementById('element-grid')!;
 const palette = new ElementPalette(paletteContainer, (el) => {
   builder.setElement(el);
+}, () => {
+  builder.loadPreset(BENZENE_STARTER_FORMAT);
 });
 
 // Select Carbon by default
@@ -118,9 +120,33 @@ document.getElementById('reset-btn')!.addEventListener('click', () => {
 });
 
 document.addEventListener('keydown', (e) => {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
   if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
     e.preventDefault();
     builder.undoLastAtom();
+    return;
+  }
+  if (e.key === 'r' || e.key === 'R') {
+    builder.reset();
+    recognitionBar.textContent = '\u2014';
+    recognitionBar.style.color = '#aaa';
+    if (sceneManager) sceneManager.fitToMolecule(5);
+    return;
+  }
+  if (e.key === ' ' && activeArObjectManager) {
+    e.preventDefault();
+    activeArObjectManager.triggerLink();
+    return;
+  }
+  if ((e.key === 'v' || e.key === 'V') && activeArManager && sceneManager) {
+    const toggleVideoBtn = document.getElementById('toggle-video-btn') as HTMLButtonElement;
+    if (sceneManager.isVideoHidden()) {
+      sceneManager.showVideoBackground();
+      toggleVideoBtn.textContent = 'Hide Video';
+    } else {
+      sceneManager.hideVideoBackground();
+      toggleVideoBtn.textContent = 'Show Video';
+    }
   }
 });
 
@@ -141,6 +167,24 @@ const handOverlayCanvas = document.getElementById('hand-overlay')   as HTMLCanva
 let activeArManager: { dispose(): void } | null = null;
 let activeArObjectManager: { update(): void; dispose(): void; triggerLink(): void } | null = null;
 
+const toggleVideoBtn = document.getElementById('toggle-video-btn') as HTMLButtonElement;
+const arBenzeneBtn   = document.getElementById('ar-benzene-btn')   as HTMLButtonElement;
+const arLabelBtn     = document.getElementById('ar-label-btn')     as HTMLButtonElement;
+
+toggleVideoBtn?.addEventListener('click', () => {
+  if (!sceneManager) return;
+  if (sceneManager.isVideoHidden()) {
+    sceneManager.showVideoBackground();
+    toggleVideoBtn.textContent = 'Hide Video';
+  } else {
+    sceneManager.hideVideoBackground();
+    toggleVideoBtn.textContent = 'Show Video';
+  }
+});
+
+arBenzeneBtn?.addEventListener('click', () => { builder.loadPreset(BENZENE_STARTER_FORMAT); });
+arLabelBtn?.addEventListener('click', () => { /* TODO: labeling (Phase 6) */ });
+
 arBtn?.addEventListener('click', async () => {
   if (!sceneManager) return;
 
@@ -154,6 +198,10 @@ arBtn?.addEventListener('click', async () => {
     sceneManager.setArMode(false);
     arBtn.textContent = 'Start AR';
     markerlessBtn.disabled = false;
+    toggleVideoBtn.style.display = 'none';
+    toggleVideoBtn.textContent = 'Hide Video';
+    arBenzeneBtn.style.display = 'none';
+    arLabelBtn.style.display = 'none';
     infoBar.textContent = '';
     return;
   }
@@ -183,8 +231,15 @@ arBtn?.addEventListener('click', async () => {
 
     await arManager.init();
 
+    // Mirror unless we explicitly got a rear-facing camera.
+    // On laptops, facingMode is '' or 'user'; 'environment' only on mobile rear cam.
+    const track = arManager.video.srcObject instanceof MediaStream
+      ? arManager.video.srcObject.getVideoTracks()[0]
+      : null;
+    const isFrontFacing = track?.getSettings().facingMode !== 'environment';
+
     // Wire scene for AR
-    sceneManager.setVideoBackground(arManager.video);
+    sceneManager.setVideoBackground(arManager.video, isFrontFacing);
     const proj = arManager.getProjectionMatrix();
     if (proj) sceneManager.setArProjectionMatrix(proj);
     const vw = arManager.video.videoWidth || 640;
@@ -198,6 +253,8 @@ arBtn?.addEventListener('click', async () => {
       sceneManager.scene,
       materialLibrary,
       () => { builder.loadPreset(BENZENE_STARTER_FORMAT); },
+      sceneManager.renderer.domElement,
+      sceneManager.camera,
     );
     activeArObjectManager = arObjectManager;
 
@@ -209,6 +266,9 @@ arBtn?.addEventListener('click', async () => {
     activeArManager = arManager;
     arBtn.disabled = false;
     arBtn.textContent = 'Stop AR';
+    toggleVideoBtn.style.display = '';
+    arBenzeneBtn.style.display = '';
+    arLabelBtn.style.display = '';
     // markerlessBtn stays disabled while AR is active
     infoBar.textContent = 'AR mode — tap canvas to add atoms';
   } catch (err) {
@@ -492,36 +552,8 @@ const sortedEntries = libraryEntries.slice().sort((a, b) => {
 
 new MoleculeLibrary(libraryContainer, sortedEntries, (entry) => {
   const name = entry.names.en ?? entry.names.de ?? 'Unknown';
-
-  // ── Markerless mode: load preset into builder for editing ─────────────────
-  if (markerlessModeActive) {
-    builder.loadPreset(entry.format);
-    // builder.onChanged is intercepted by HandObjectManager — it re-renders
-    // the molecule under the pivot group automatically.
-    infoBar.textContent = `${name}${entry.formula ? ' \u2014 ' + entry.formula : ''} \u2014 ${builder.getMolecule().atoms.length} atoms`;
-    recognitionBar.textContent = name;
-    recognitionBar.style.color = '#aaa';
-    return;
-  }
-
-  // ── Desktop mode: view-only rendering ────────────────────────────────────
-  if (!sceneManager || !moleculeRenderer) return;
-
-  const viewMol = deserializeMolecule(name, entry.format, {
-    formula: entry.formula,
-    category: entry.category,
-    names: entry.names,
-  });
-
-  moleculeRenderer.clear();
-  const { group, boundingRadius } = moleculeRenderer.renderMolecule(viewMol);
-  sceneManager.add(group);
-  sceneManager.fitToMolecule(boundingRadius);
-
-  currentAtomMeshes = [];
-  desktopControls?.updateGeometry({ atoms: [], bonds: [], boundingRadius: 0, center: [0, 0, 0] }, []);
-
-  infoBar.textContent = `${name}${entry.formula ? ' \u2014 ' + entry.formula : ''} \u2014 ${viewMol.atoms.length} atoms (view only)`;
+  builder.loadPreset(entry.format);
   recognitionBar.textContent = name;
   recognitionBar.style.color = '#aaa';
+  infoBar.textContent = `${name}${entry.formula ? ' \u2014 ' + entry.formula : ''} \u2014 ${builder.getMolecule().atoms.length} atoms`;
 });

@@ -10,6 +10,8 @@ export class SceneManager {
   private animationId = 0;
   private onBeforeRenderCallback: (() => void) | null = null;
   private arVideoAspect: number | null = null;
+  private _videoTexture: THREE.VideoTexture | null = null;
+  private _videoHidden = false;
 
   constructor(container: HTMLElement) {
     // Scene
@@ -84,10 +86,33 @@ export class SceneManager {
 
   /**
    * Use a video element as the scene background (AR camera feed).
-   * Pass the ArManager.video element here.
+   * Pass mirrored=true for front-facing cameras to flip the display.
    */
-  setVideoBackground(video: HTMLVideoElement): void {
-    this.scene.background = new THREE.VideoTexture(video);
+  setVideoBackground(video: HTMLVideoElement, mirrored = false): void {
+    const tex = new THREE.VideoTexture(video);
+    if (mirrored) {
+      tex.repeat.x = -1;
+      tex.offset.x = 1;
+    }
+    this._videoTexture = tex;
+    this._videoHidden = false;
+    this.scene.background = tex;
+  }
+
+  hideVideoBackground(): void {
+    if (this._videoHidden) return;
+    this._videoHidden = true;
+    this.scene.background = new THREE.Color(0x1a1a2e);
+  }
+
+  showVideoBackground(): void {
+    if (!this._videoHidden) return;
+    this._videoHidden = false;
+    if (this._videoTexture) this.scene.background = this._videoTexture;
+  }
+
+  isVideoHidden(): boolean {
+    return this._videoHidden;
   }
 
   /**
@@ -125,6 +150,8 @@ export class SceneManager {
       delete (this.camera as Partial<typeof this.camera>).updateProjectionMatrix;
       this.camera.position.set(0, 0, 10);
       this.arVideoAspect = null;
+      this._videoTexture = null;
+      this._videoHidden = false;
       this.onResize();
     }
   }

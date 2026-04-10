@@ -43,7 +43,7 @@ export class GhostRenderer {
    * Show a wireframe tetrahedron + small bond-order dots at all valid positions.
    * Returns GhostInfo list so DesktopControls can raycast against the dots.
    */
-  showGhosts(atom: Atom, scene: THREE.Scene): GhostInfo[] {
+  showGhosts(atom: Atom, parent: THREE.Object3D): GhostInfo[] {
     this.clearGhosts();
 
     if (atom.done) return this.ghosts;
@@ -67,7 +67,7 @@ export class GhostRenderer {
     this.wireframeGeo = new THREE.BufferGeometry();
     this.wireframeGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     this.wireframe = new THREE.LineSegments(this.wireframeGeo, this._wireframeMat);
-    scene.add(this.wireframe);
+    parent.add(this.wireframe);
 
     // ── Bond-position dots ───────────────────────────────────────────────────
     const pool = getPoolOfPossibleConnections(atom.getConnectionBitField(), atom.element.valence);
@@ -81,7 +81,7 @@ export class GhostRenderer {
 
       const mesh = new THREE.Mesh(GHOST_GEOMETRY, this._ghostMaterials[bondOrder - 1]);
       mesh.position.set(worldMatrix[12], worldMatrix[13], worldMatrix[14]);
-      scene.add(mesh);
+      parent.add(mesh);
 
       this.ghosts.push({ mesh, atom, connectionBitfield: candidateBitfield });
     }
@@ -110,7 +110,7 @@ export class GhostRenderer {
    * adding a wireframe tetrahedron. Used by Option D (simple mode) to display
    * every unsaturated atom's valid bond positions simultaneously.
    */
-  addGhostsForAtom(atom: Atom, scene: THREE.Scene): void {
+  addGhostsForAtom(atom: Atom, parent: THREE.Object3D): void {
     if (atom.done) return;
 
     const pool = getPoolOfPossibleConnections(atom.getConnectionBitField(), atom.element.valence);
@@ -124,7 +124,7 @@ export class GhostRenderer {
 
       const mesh = new THREE.Mesh(GHOST_GEOMETRY, this._ghostMaterials[bondOrder - 1]);
       mesh.position.set(worldMatrix[12], worldMatrix[13], worldMatrix[14]);
-      scene.add(mesh);
+      parent.add(mesh);
 
       this.ghosts.push({ mesh, atom, connectionBitfield: candidateBitfield });
     }

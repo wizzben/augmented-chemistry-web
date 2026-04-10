@@ -611,10 +611,7 @@ export class HandObjectManager {
         for (const mesh of this._currentAtomMeshes) {
           const atom = this._atomMeshToAtom.get(mesh);
           if (atom && !atom.done) {
-            this._ghostRenderer.addGhostsForAtom(
-              atom,
-              this._pivotGroup as unknown as THREE.Scene,
-            );
+            this._ghostRenderer.addGhostsForAtom(atom, this._pivotGroup);
           }
         }
       }
@@ -658,9 +655,7 @@ export class HandObjectManager {
       // Highlight the atom the grabber finger is approaching
       this._setAtomHighlight(nearestMesh);
       this._approachingAtom = nearestAtom;
-      // Ghosts are placed in pivotGroup local space via cast (runtime-safe since
-      // THREE.Group.add === THREE.Object3D.add, which THREE.Scene also uses).
-      this._ghostRenderer.showGhosts(nearestAtom, this._pivotGroup as unknown as THREE.Scene);
+      this._ghostRenderer.showGhosts(nearestAtom, this._pivotGroup);
       this.grabberState = 'APPROACHING';
     } else {
       // No atom nearby — clear any lingering highlight

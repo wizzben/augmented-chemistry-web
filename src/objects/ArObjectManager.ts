@@ -22,7 +22,8 @@ import { ElementMarker } from './ElementMarker';
 import { Cube } from './Cube';
 import { Transport } from './Transport';
 import { PushButton } from './PushButton';
-import { Platform } from './Platform';
+import { Platform, MOLECULE_AR_SCALE } from './Platform';
+import { VirtualTransport } from './VirtualTransport';
 import type { MoleculeGeometryData } from '@/rendering/MoleculeGeometry';
 
 /** Distance threshold beyond which the flirt arrow is hidden. */
@@ -62,6 +63,16 @@ export class ArObjectManager {
   /** builder.onChanged before we overrode it — restored on dispose. */
   private _savedOnChanged: (geo: MoleculeGeometryData) => void;
 
+  // ── Virtual transport (fallback when physical transport absent) ─────────────
+  private readonly _virtualTransport: VirtualTransport;
+
+  // ── Auto-fit ───────────────────────────────────────────────────────────────
+  private readonly _camera: THREE.Camera;
+  /** Mol-local bounding radius of the current molecule, updated on onChanged. */
+  private _moleculeBoundingRadius = 0;
+  /** Fraction of the NDC half-extent used as the fit target (0–1). */
+  private static readonly _FIT_MARGIN = 0.82;
+
   // ── Three.js overlay meshes ────────────────────────────────────────────────
   private arrowGroup: THREE.Group;
   private grabbedSphere: THREE.Mesh;
@@ -73,11 +84,16 @@ export class ArObjectManager {
     scene: THREE.Scene,
     materialLibrary: MaterialLibrary,
     /** Optional: called when the benzene push-button is toggled on. */
-    onBenzene?: () => void,
+    onBenzene: (() => void) | undefined,
+    /** Canvas element — used for cube mouse-rotation fallback. */
+    canvas: HTMLCanvasElement,
+    /** Camera — used to project the molecule bounding sphere for auto-fit. */
+    camera: THREE.Camera,
   ) {
     this.markerState = markerState;
     this.builder = builder;
     this.scene = scene;
+    this._camera = camera;
 
     // ── Element markers ────────────────────────────────────────────────────
     this.elementMarkers = ELEMENT_MARKER_DEFS.map(([name, sym]) => {
@@ -90,6 +106,7 @@ export class ArObjectManager {
 
     // ── Cube ───────────────────────────────────────────────────────────────
     this.cube = new Cube();
+    this.cube.enableMouseFallback(canvas);
 
     // ── Transport ──────────────────────────────────────────────────────────
     this.transport = new Transport();
@@ -97,6 +114,9 @@ export class ArObjectManager {
     // ── Platform ───────────────────────────────────────────────────────────
     const tetra = setTetraMatrices(1.0);
     this.platform = new Platform(this.transport, this.cube, builder, tetra, scene);
+
+    // ── Virtual transport (fallback) ───────────────────────────────────────
+    this._virtualTransport = new VirtualTransport(tetra, this.platform.moleculeAnchor);
 
     // ── Push buttons ──────────────────────────────────────────────────────
     this.pushButtons = [
@@ -142,7 +162,12 @@ export class ArObjectManager {
       if (geo.atoms.length > 0) {
         const { group } = this._arRenderer.renderMolecule(builder.getMolecule());
         this.platform.moleculeAnchor.add(group);
+        this._moleculeBoundingRadius = geo.boundingRadius;
+      } else {
+        this._moleculeBoundingRadius = 0;
+        this.platform.setMoleculeScale(1.0);
       }
+      this._virtualTransport.notifyMoleculeChanged();
     };
 
     // Render existing molecule (if any) immediately under moleculeAnchor
@@ -172,21 +197,42 @@ export class ArObjectManager {
     // 5. Platform
     platform.refreshState(markerState);
 
-    // 6. Sync grabbed element → builder current element
-    if (transport.grabbedElement) {
+    // 6. Sync grabbed element → builder current element (only when transport is visible)
+    if (transport.visible && transport.grabbedElement) {
       builder.setElement(transport.grabbedElement.element);
     }
 
     // 7. Update Three.js mesh visibilities
     this._updateTransportMeshes();
+
+    // 8. Virtual transport fallback — active when physical transport is absent
+    const transportAbsent = !transport.visible;
+    if (transportAbsent && builder.getCurrentElement()) {
+      this._virtualTransport.setActive(true);
+      this._virtualTransport.update(builder);
+    } else {
+      this._virtualTransport.setActive(false);
+    }
+
+    // 9. Auto-fit: scale molecule down if bounding sphere exceeds the viewport
+    if (this._moleculeBoundingRadius > 0) {
+      this.platform.setMoleculeScale(this._computeAutoScale());
+    }
   }
 
-  /** Call on canvas tap when AR mode is active. */
+  /** Call on canvas tap or Space key when AR mode is active. */
   triggerLink(): void {
-    this.platform.triggerLink();
+    if (this._virtualTransport.isActive) {
+      this._virtualTransport.confirm(this.builder);
+    } else {
+      this.platform.triggerLink();
+    }
   }
 
   dispose(): void {
+    this._virtualTransport.dispose();
+    this.cube.disableMouseFallback();
+
     // Restore original builder.onChanged
     this.builder.onChanged = this._savedOnChanged;
 
@@ -221,6 +267,33 @@ export class ArObjectManager {
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
+
+  /**
+   * Compute a molecule scale factor so the bounding sphere fits within FIT_MARGIN
+   * of the viewport. Returns 1.0 (no change) when the molecule already fits.
+   *
+   * Uses projectionMatrix.elements[5] (f_y = cot(fovY/2)) and the distance from
+   * camera origin to the molecule anchor translation.
+   *
+   * NDC projected radius = f_y * worldRadius / dist
+   * Fits when projected radius ≤ FIT_MARGIN → solve for extraScale.
+   */
+  private _computeAutoScale(): number {
+    const m = this.platform.moleculeAnchor.matrix.elements;
+    const tx = m[12], ty = m[13], tz = m[14];
+    const dist = Math.sqrt(tx * tx + ty * ty + tz * tz);
+    if (dist < 1) return 1.0;
+
+    // projectionMatrix.elements[5] is f_y in column-major layout
+    const fy = (this._camera as THREE.PerspectiveCamera).projectionMatrix.elements[5];
+    if (!fy) return 1.0;
+
+    // World-space radius at the current extra scale (we test with scale=1 to find target)
+    const worldRadius = this._moleculeBoundingRadius * MOLECULE_AR_SCALE;
+    const maxWorldRadius = ArObjectManager._FIT_MARGIN * dist / fy;
+
+    return worldRadius <= maxWorldRadius ? 1.0 : maxWorldRadius / worldRadius;
+  }
 
   private _updateTransportMeshes(): void {
     const { transport } = this;
