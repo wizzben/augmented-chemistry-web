@@ -5,6 +5,13 @@ import type { BondPlacement } from './MoleculeGeometry';
 const BOND_RADIUS = 0.15;
 const CYLINDER_SEGMENTS = 10;
 
+/**
+ * Atom sphere radius in local units = ATOM_SCALE × element.radius.
+ * Bonds are clipped by this amount at each end so they never penetrate the
+ * atom sphere geometry.  Keeps in sync with AtomRenderer.ATOM_SCALE.
+ */
+const ATOM_SCALE = 0.4;
+
 const _origin = new THREE.Vector3();
 const _target = new THREE.Vector3();
 const _dir = new THREE.Vector3();
@@ -26,10 +33,23 @@ export class BondRenderer {
     _origin.set(bond.originPos[0], bond.originPos[1], bond.originPos[2]);
     _target.set(bond.targetPos[0], bond.targetPos[1], bond.targetPos[2]);
     _dir.subVectors(_target, _origin);
-    const length = _dir.length();
+    const fullLength = _dir.length();
     _dir.normalize();
 
-    _mid.addVectors(_origin, _target).multiplyScalar(0.5);
+    // Clip each endpoint back to the atom sphere surface so the cylinder
+    // occupies only the gap between spheres and never overlaps sphere geometry.
+    // This eliminates z-fighting and depth-ordering artefacts in all modes.
+    const rOrigin = ATOM_SCALE * bond.originAtom.element.radius;
+    const rTarget = ATOM_SCALE * bond.targetAtom.element.radius;
+    const clippedLength = fullLength - rOrigin - rTarget;
+
+    // Guard: if atoms are so large the bond disappears, fall back to full length
+    const length = clippedLength > 0.01 ? clippedLength : fullLength;
+    const originOffset = clippedLength > 0.01 ? rOrigin : 0;
+
+    // Midpoint of the clipped segment
+    _mid.copy(_origin)
+      .addScaledVector(_dir, originOffset + length * 0.5);
 
     const mesh = new THREE.Mesh(this.cylinderGeo, material);
     mesh.position.copy(_mid);
